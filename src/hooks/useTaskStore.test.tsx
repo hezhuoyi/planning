@@ -3,7 +3,7 @@
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Task } from '../domain/types'
-import { useTaskStore } from './useTaskStore'
+import { getAuthRedirectUrl, useTaskStore } from './useTaskStore'
 
 const mocks = vi.hoisted(() => ({
   createSupabase: vi.fn(),
@@ -224,6 +224,12 @@ afterEach(() => {
 })
 
 describe('useTaskStore cloud synchronization', () => {
+  it('keeps the deployment base path in authentication redirects', () => {
+    expect(getAuthRedirectUrl('https://hezhuoyi.github.io', '/planning/')).toBe(
+      'https://hezhuoyi.github.io/planning/',
+    )
+  })
+
   it('scopes remote reads and deletes to the authenticated user', async () => {
     const fake = createFakeSupabase()
     mocks.createSupabase.mockReturnValue(fake.client)

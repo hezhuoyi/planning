@@ -7,6 +7,13 @@ import { loadCachedTasks, saveCachedTasks, type TaskCacheState } from '../lib/st
 
 export type SyncState = 'local' | 'connecting' | 'synced' | 'offline' | 'error'
 
+export function getAuthRedirectUrl(
+  origin: string,
+  basePath = import.meta.env.BASE_URL,
+): string {
+  return new URL(basePath, `${origin}/`).toString()
+}
+
 const REALTIME_REFRESH_DELAY_MS = 50
 
 function sortTasks(tasks: Task[]): Task[] {
@@ -371,7 +378,7 @@ export function useTaskStore() {
       if (!supabase) throw new Error('请先配置 Supabase')
       const { error } = await supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: window.location.origin },
+        options: { emailRedirectTo: getAuthRedirectUrl(window.location.origin) },
       })
       if (error) throw error
     },

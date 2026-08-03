@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Check, Flag, Save, Trash2, X } from 'lucide-react'
+import { normalizeOwner, TASK_OWNERS, type TaskOwner } from '../domain/owners'
 import type { Task, TaskCategory, TaskType } from '../domain/types'
 
 interface TaskDialogProps {
@@ -27,7 +28,7 @@ function makeDraft(task: Task | null, initialDate: string, nextSortOrder: number
       title: '',
       startDate: initialDate,
       endDate: initialDate,
-      owner: null,
+      owner: '共同',
       category: 'growth',
       type: 'range',
       isOngoing: false,
@@ -87,10 +88,16 @@ export function TaskDialog({
       return
     }
 
+    const owner = normalizeOwner(draft.owner)
+    if (!owner) {
+      setError('请选择负责人')
+      return
+    }
+
     onSave({
       ...draft,
       title: draft.title.trim(),
-      owner: draft.owner?.trim() || null,
+      owner,
       endDate: draft.isOngoing ? null : draft.type === 'milestone' ? draft.startDate : draft.endDate,
       updatedAt: new Date().toISOString(),
     })
@@ -171,11 +178,24 @@ export function TaskDialog({
             </label>
             <label className="field">
               <span>负责人</span>
-              <input
-                value={draft.owner ?? ''}
-                onChange={(event) => setDraft({ ...draft, owner: event.target.value })}
-                placeholder="选填"
-              />
+              <select
+                value={normalizeOwner(draft.owner) ?? ''}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    owner: (event.target.value || null) as TaskOwner | null,
+                  })
+                }
+              >
+                <option value="" disabled>
+                  请选择
+                </option>
+                {TASK_OWNERS.map((owner) => (
+                  <option value={owner} key={owner}>
+                    {owner}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="field">
               <span>分类</span>

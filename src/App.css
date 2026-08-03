@@ -91,8 +91,7 @@
 
 .button,
 .icon-button,
-.sync-button,
-.zoom-switch button {
+.sync-button {
   border: 1px solid var(--line-strong);
   border-radius: 6px;
   background: var(--panel);
@@ -111,8 +110,7 @@
 
 .button:hover,
 .icon-button:hover,
-.sync-button:hover,
-.zoom-switch button:hover {
+.sync-button:hover {
   border-color: #9fb1c0;
   background: #f7fafc;
 }
@@ -166,38 +164,6 @@
 .toolbar {
   justify-content: flex-end;
   gap: 6px;
-}
-
-.zoom-switch {
-  display: grid;
-  grid-template-columns: repeat(3, 32px);
-  padding: 2px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: #edf2f6;
-}
-
-.zoom-switch button {
-  height: 28px;
-  padding: 0;
-  border-color: transparent;
-  color: var(--muted);
-  font-size: 12px;
-  background: transparent;
-}
-
-.zoom-switch button.active {
-  border-color: var(--line);
-  color: var(--ink);
-  background: var(--panel);
-  box-shadow: 0 1px 2px rgb(35 64 88 / 9%);
-}
-
-.toolbar-divider {
-  width: 1px;
-  height: 22px;
-  margin: 0 3px;
-  background: var(--line);
 }
 
 .icon-button {
@@ -379,11 +345,42 @@
   white-space: nowrap;
 }
 
+.owner-group {
+  position: relative;
+  border-bottom: 1px solid var(--line);
+}
+
+.owner-group:last-of-type {
+  border-bottom: 0;
+}
+
+.owner-group-label {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  display: flex;
+  width: max-content;
+  max-width: 120px;
+  min-height: 28px;
+  align-items: center;
+  padding: 4px 10px;
+  border-right: 1px solid #d7e1e8;
+  color: #4d5f6d;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: linear-gradient(90deg, #eef3f6 70%, rgb(238 243 246 / 0%));
+}
+
 .gantt-lane {
   position: relative;
   z-index: 1;
   height: var(--lane-height);
   border-bottom: 1px solid #edf1f4;
+}
+
+.owner-group .gantt-lane:last-child {
+  border-bottom: 0;
 }
 
 .gantt-lane:hover {
@@ -402,8 +399,7 @@
   border-radius: 7px;
   color: #fff;
   background: var(--task-color);
-  cursor: grab;
-  touch-action: none;
+  cursor: pointer;
   transition: filter 120ms ease, box-shadow 120ms ease;
 }
 
@@ -411,10 +407,6 @@
   z-index: 5;
   filter: brightness(.96);
   box-shadow: 0 4px 12px rgb(44 65 82 / 17%);
-}
-
-.task-mark:active {
-  cursor: grabbing;
 }
 
 .task-mark.category-health { --task-color: #548c7d; }
@@ -510,17 +502,6 @@
   transform: skewX(-18deg);
 }
 
-.drag-hint {
-  position: absolute;
-  right: 7px;
-  top: 9px;
-  opacity: 0;
-}
-
-.task-mark:hover .drag-hint {
-  opacity: .78;
-}
-
 .task-mark.milestone {
   width: 22px;
   min-width: 22px;
@@ -554,10 +535,6 @@
   font-weight: 500;
   line-height: 1.35;
   white-space: nowrap;
-}
-
-.task-mark.milestone .drag-hint {
-  display: none;
 }
 
 .quick-lane {
@@ -889,14 +866,6 @@ button:focus-visible {
 
   .toolbar {
     width: 100%;
-  }
-
-  .zoom-switch {
-    margin-right: auto;
-  }
-
-  .toolbar-divider {
-    display: none;
   }
 
   .sync-button {

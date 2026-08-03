@@ -1,46 +1,25 @@
-import { useRef, useState } from 'react'
-import { addDays, format, parseISO } from 'date-fns'
+import { useState } from 'react'
+import { format } from 'date-fns'
 import {
   CalendarDays,
   Cloud,
   CloudOff,
-  Download,
   LocateFixed,
   Plus,
-  Upload,
 } from 'lucide-react'
 import './App.css'
-import { GanttBoard, type ZoomLevel } from './components/GanttBoard'
+import { GanttBoard } from './components/GanttBoard'
 import { SyncDialog } from './components/SyncDialog'
 import { TaskDialog } from './components/TaskDialog'
 import type { Task } from './domain/types'
 import { useTaskStore, type SyncState } from './hooks/useTaskStore'
 
 const SYNC_LABELS: Record<SyncState, string> = {
-  local: '仅本机',
-  connecting: '连接中',
-  synced: '已同步',
-  offline: '离线',
-  error: '同步异常',
-}
-
-const ZOOM_OPTIONS: Array<{ value: ZoomLevel; label: string }> = [
-  { value: 'period', label: '旬' },
-  { value: 'month', label: '月' },
-  { value: 'year', label: '年' },
-]
-
-function isTask(value: unknown): value is Task {
-  if (!value || typeof value !== 'object') return false
-  const task = value as Partial<Task>
-  return Boolean(
-    task.id &&
-      task.title &&
-      task.startDate &&
-      task.category &&
-      task.type &&
-      typeof task.sortOrder === 'number',
-  )
+  local: '云同步未开启',
+  connecting: '云同步连接中',
+  synced: '云同步已开启',
+  offline: '云同步离线',
+  error: '云同步异常',
 }
 
 function App() {
@@ -48,7 +27,6 @@ function App() {
     tasks,
     saveTask,
     deleteTask,
-    importTasks,
     session,
     syncState,
     syncError,
@@ -56,14 +34,11 @@ function App() {
     sendMagicLink,
     signOut,
   } = useTaskStore()
-  const [zoom, setZoom] = useState<ZoomLevel>('period')
   const [focusTodayToken, setFocusTodayToken] = useState(0)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [dialogDate, setDialogDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [taskDialogOpen, setTaskDialogOpen] = useState(false)
   const [syncDialogOpen, setSyncDialogOpen] = useState(false)
-  const [notice, setNotice] = useState('')
-  const importRef = useRef<HTMLInputElement>(null)
 
   const openNewTask = (date = format(new Date(), 'yyyy-MM-dd')) => {
     setEditingTask(null)
@@ -75,39 +50,6 @@ function App() {
     setEditingTask(task)
     setDialogDate(task.startDate)
     setTaskDialogOpen(true)
-  }
-
-  const shiftTask = (task: Task, days: number) => {
-    void saveTask({
-      ...task,
-      startDate: format(addDays(parseISO(task.startDate), days), 'yyyy-MM-dd'),
-      endDate: task.endDate
-        ? format(addDays(parseISO(task.endDate), days), 'yyyy-MM-dd')
-        : null,
-      updatedAt: new Date().toISOString(),
-    })
-  }
-
-  const exportTasks = () => {
-    const blob = new Blob([JSON.stringify(tasks, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = `planning-${format(new Date(), 'yyyy-MM-dd')}.json`
-    anchor.click()
-    URL.revokeObjectURL(url)
-    setNotice('备份已导出')
-  }
-
-  const importBackup = async (file: File) => {
-    try {
-      const parsed: unknown = JSON.parse(await file.text())
-      if (!Array.isArray(parsed) || !parsed.every(isTask)) throw new Error('备份格式不正确')
-      await importTasks(parsed)
-      setNotice(`已导入 ${parsed.length} 项`)
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : '导入失败')
-    }
   }
 
   const nextSortOrder = Math.max(0, ...tasks.map((task) => task.sortOrder)) + 10
@@ -142,42 +84,11 @@ function App() {
         </div>
 
         <div className="toolbar">
-          <div className="zoom-switch" aria-label="时间粒度">
-            {ZOOM_OPTIONS.map((option) => (
-              <button
-                type="button"
-                className={zoom === option.value ? 'active' : ''}
-                aria-pressed={zoom === option.value}
-                key={option.value}
-                onClick={() => setZoom(option.value)}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-
-          <span className="toolbar-divider" />
-          <button className="icon-button" type="button" onClick={exportTasks} aria-label="导出备份" title="导出备份">
-            <Download aria-hidden="true" />
-          </button>
-          <button className="icon-button" type="button" onClick={() => importRef.current?.click()} aria-label="导入备份" title="导入备份">
-            <Upload aria-hidden="true" />
-          </button>
-          <input
-            ref={importRef}
-            className="visually-hidden"
-            type="file"
-            accept="application/json,.json"
-            onChange={(event) => {
-              const file = event.target.files?.[0]
-              if (file) void importBackup(file)
-              event.target.value = ''
-            }}
-          />
           <button
             className={`sync-button state-${syncState}`}
             type="button"
             onClick={() => setSyncDialogOpen(true)}
+            title="配置或查看云同步"
           >
             {syncState === 'offline' || syncState === 'error' ? (
               <CloudOff size={15} aria-hidden="true" />
@@ -191,11 +102,9 @@ function App() {
 
       <GanttBoard
         tasks={tasks}
-        zoom={zoom}
         focusTodayToken={focusTodayToken}
         onEdit={openEditTask}
         onCreateAt={openNewTask}
-        onShift={shiftTask}
       />
 
       <footer className="status-legend" aria-label="任务状态图例">
@@ -207,12 +116,6 @@ function App() {
         <span className="footer-spacer" />
         <span>数据范围随事项自动延伸</span>
       </footer>
-
-      {notice && (
-        <button className="toast" type="button" onClick={() => setNotice('')} aria-live="polite">
-          {notice}
-        </button>
-      )}
 
       {taskDialogOpen && (
         <TaskDialog

@@ -19,7 +19,12 @@
 
 .app-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   padding: 24px 28px 18px;
+  padding-top: calc(24px + env(safe-area-inset-top));
+  padding-right: calc(28px + env(safe-area-inset-right));
+  padding-bottom: calc(18px + env(safe-area-inset-bottom));
+  padding-left: calc(28px + env(safe-area-inset-left));
   background: var(--surface);
 }
 
@@ -215,8 +220,11 @@
   width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
   scrollbar-color: #aebbc5 #edf2f5;
   scrollbar-width: thin;
+  touch-action: pan-x pan-y;
 }
 
 .gantt-canvas {
@@ -829,72 +837,193 @@ button:focus-visible {
 }
 
 @media (max-width: 720px) {
+  :root {
+    --lane-height: 48px;
+  }
+
   .app-shell {
-    padding: 14px 12px 10px;
+    padding: 10px 10px 8px;
+    padding-top: calc(10px + env(safe-area-inset-top));
+    padding-right: calc(10px + env(safe-area-inset-right));
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    padding-left: calc(10px + env(safe-area-inset-left));
   }
 
   .topbar {
-    min-height: 52px;
-    margin-bottom: 14px;
+    min-height: 44px;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .brand {
+    gap: 8px;
   }
 
   .brand-mark {
-    width: 34px;
-    height: 34px;
-    flex-basis: 34px;
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
   }
 
   .brand h1 {
-    font-size: 19px;
+    font-size: 17px;
   }
 
-  .brand p,
-  .today-button {
+  .brand p {
     display: none;
   }
 
+  .primary-actions {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .today-button,
   .primary-button {
-    min-height: 34px;
+    min-height: 36px;
+    min-width: 36px;
     padding-inline: 10px;
   }
 
+  .today-button .button-label {
+    display: none;
+  }
+
+  .primary-button .button-label {
+    font-size: 13px;
+  }
+
   .workspace-bar {
-    align-items: flex-start;
-    flex-direction: column;
-    padding: 9px;
+    min-height: 44px;
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    padding: 8px 10px;
+    border-radius: 8px 8px 0 0;
+  }
+
+  .view-heading {
+    flex: 1 1 auto;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .view-heading strong {
+    font-size: 13px;
   }
 
   .toolbar {
-    width: 100%;
+    width: auto;
+    margin-left: auto;
   }
 
   .sync-button {
+    min-height: 34px;
     padding-inline: 8px;
+    font-size: 12px;
+  }
+
+  .gantt-shell {
+    border-radius: 0 0 8px 8px;
+  }
+
+  .gantt-header {
+    height: 78px;
+  }
+
+  .year-row {
+    height: 22px;
+  }
+
+  .month-row {
+    height: 28px;
+  }
+
+  .period-row {
+    height: 28px;
+  }
+
+  .header-block {
+    font-size: 11px;
+  }
+
+  .month-block {
+    font-size: 11px;
+  }
+
+  .gantt-body {
+    min-height: calc(var(--lane-height) * 6 + 28px);
+  }
+
+  .owner-group-label {
+    max-width: 72px;
+    min-height: 26px;
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+
+  .gantt-lane {
+    height: var(--lane-height);
+  }
+
+  .task-mark {
+    top: 8px;
+    height: 32px;
+    border-radius: 8px;
+  }
+
+  .task-label {
+    left: 8px;
+    height: 32px;
+    font-size: 12px;
+  }
+
+  .task-mark > svg:first-child {
+    top: 9px;
+    left: 6px;
+  }
+
+  .task-mark > svg:first-child + .task-label {
+    left: 22px;
+  }
+
+  .ongoing-edge::after {
+    height: 32px;
+  }
+
+  .task-mark.milestone {
+    width: 20px;
+    min-width: 20px;
+  }
+
+  .task-mark.milestone::before {
+    top: 6px;
+    width: 17px;
+    height: 17px;
+  }
+
+  .milestone-label {
+    top: 7px;
+    left: 26px;
+    font-size: 12px;
+  }
+
+  .quick-lane {
+    height: 28px;
   }
 
   .status-legend {
     min-height: auto;
     flex-wrap: wrap;
-    gap: 8px 14px;
-    padding: 12px 2px;
+    gap: 8px 12px;
+    padding: 10px 2px 4px;
+    font-size: 11px;
   }
 
-  .task-mark {
-    top: 7px;
-    height: 38px;
-  }
-
-  .task-label {
-    height: 38px;
-  }
-
-  .zoom-year .task-label {
-    top: 7px;
-    height: 24px;
-  }
-
-  .ongoing-edge::after {
-    height: 38px;
+  .legend-dot {
+    width: 8px;
+    height: 8px;
   }
 
   .footer-spacer,
@@ -903,21 +1032,89 @@ button:focus-visible {
   }
 
   .dialog-backdrop {
-    padding: 10px;
+    align-items: end;
+    padding: 0;
+    place-items: end center;
   }
 
-  .task-dialog {
-    max-height: calc(100vh - 20px);
+  .task-dialog,
+  .sync-dialog {
+    width: 100%;
+    max-height: min(92dvh, 100%);
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 -8px 32px rgb(35 53 68 / 18%);
   }
 
-  .dialog-header,
+  .dialog-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    gap: 12px;
+    padding: 14px 16px 12px;
+    background: var(--panel);
+  }
+
+  .dialog-header h2 {
+    font-size: 17px;
+  }
+
   .task-dialog form,
-  .sync-section {
-    padding-inline: 16px;
+  .sync-section,
+  .account-row {
+    padding: 14px 16px calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .field input,
+  .field select,
+  .field textarea {
+    min-height: 42px;
+    font-size: 16px;
   }
 
   .form-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .mode-switch {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .mode-switch button {
+    min-height: 40px;
+  }
+
+  .dialog-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .dialog-actions .button {
+    min-height: 42px;
+  }
+
+  .dialog-actions .danger-button {
+    order: 3;
+    width: 100%;
+  }
+
+  .account-row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .account-row .button {
+    width: 100%;
+    margin-top: 4px;
+  }
+
+  .toast {
+    left: 10px;
+    right: 10px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    width: auto;
+    transform: none;
   }
 }
 

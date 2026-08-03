@@ -15,11 +15,11 @@ import type { Task } from './domain/types'
 import { useTaskStore, type SyncState } from './hooks/useTaskStore'
 
 const SYNC_LABELS: Record<SyncState, string> = {
-  local: '输入口令同步',
-  connecting: '云同步连接中',
-  synced: '云同步已开启',
-  offline: '云同步离线',
-  error: '云同步异常',
+  local: '同步',
+  connecting: '同步中',
+  synced: '已同步',
+  offline: '离线',
+  error: '同步异常',
 }
 
 function App() {
@@ -69,11 +69,23 @@ function App() {
         </div>
 
         <div className="primary-actions">
-          <button className="button today-button" type="button" onClick={() => setFocusTodayToken((value) => value + 1)}>
-            <LocateFixed size={16} aria-hidden="true" />今天
+          <button
+            className="button today-button"
+            type="button"
+            onClick={() => setFocusTodayToken((value) => value + 1)}
+            aria-label="定位到今天"
+          >
+            <LocateFixed size={16} aria-hidden="true" />
+            <span className="button-label">今天</span>
           </button>
-          <button className="button primary-button" type="button" onClick={() => openNewTask()}>
-            <Plus size={17} aria-hidden="true" />新增事项
+          <button
+            className="button primary-button"
+            type="button"
+            onClick={() => openNewTask()}
+            aria-label="新增事项"
+          >
+            <Plus size={17} aria-hidden="true" />
+            <span className="button-label">新增</span>
           </button>
         </div>
       </header>
@@ -90,14 +102,14 @@ function App() {
               className={`sync-button state-${unlocked ? syncState : 'local'}`}
               type="button"
               onClick={() => setSyncDialogOpen(true)}
-              title="家庭口令同步"
+              title={unlocked ? syncLabel : '输入口令开启云同步'}
             >
               {unlocked && (syncState === 'offline' || syncState === 'error') ? (
                 <CloudOff size={15} aria-hidden="true" />
               ) : (
                 <Cloud size={15} aria-hidden="true" />
               )}
-              {syncLabel}
+              <span className="sync-label">{syncLabel}</span>
             </button>
           )}
         </div>

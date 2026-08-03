@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   addDays,
   differenceInCalendarDays,
@@ -29,8 +29,28 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   completed: '已完成',
 }
 
-const PIXELS_PER_DAY = 5.2
-const MIN_BOARD_WIDTH = 760
+const PIXELS_PER_DAY_DESKTOP = 5.2
+const PIXELS_PER_DAY_MOBILE = 8
+const MIN_BOARD_WIDTH_DESKTOP = 760
+const MIN_BOARD_WIDTH_MOBILE = 480
+
+function useNarrowScreen() {
+  const [narrow, setNarrow] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+    return window.matchMedia('(max-width: 720px)').matches
+  })
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return
+    const media = window.matchMedia('(max-width: 720px)')
+    const update = () => setNarrow(media.matches)
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+
+  return narrow
+}
 
 export function GanttBoard({
   tasks,
@@ -39,10 +59,13 @@ export function GanttBoard({
   onCreateAt,
 }: GanttBoardProps) {
   const today = useMemo(() => new Date(), [])
+  const narrow = useNarrowScreen()
   const range = useMemo(() => getTimelineRange(tasks, today), [tasks, today])
   const months = useMemo(() => eachMonthOfInterval(range), [range])
   const totalDays = differenceInCalendarDays(range.end, range.start) + 1
-  const boardWidth = Math.max(MIN_BOARD_WIDTH, Math.round(totalDays * PIXELS_PER_DAY))
+  const pixelsPerDay = narrow ? PIXELS_PER_DAY_MOBILE : PIXELS_PER_DAY_DESKTOP
+  const minBoardWidth = narrow ? MIN_BOARD_WIDTH_MOBILE : MIN_BOARD_WIDTH_DESKTOP
+  const boardWidth = Math.max(minBoardWidth, Math.round(totalDays * pixelsPerDay))
   const scrollRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
 

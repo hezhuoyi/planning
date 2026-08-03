@@ -1,20 +1,28 @@
 import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 
 const expectedBase = '/planning/'
-const [html, manifestText, registerSw, serviceWorker] = await Promise.all([
-  readFile('dist/index.html', 'utf8'),
-  readFile('dist/manifest.webmanifest', 'utf8'),
-  readFile('dist/registerSW.js', 'utf8'),
-  readFile('dist/sw.js', 'utf8'),
+const distDir = process.env.DIST_DIR ?? 'dist'
+const [html, manifestText, serviceWorker] = await Promise.all([
+  readFile(join(distDir, 'index.html'), 'utf8'),
+  readFile(join(distDir, 'manifest.webmanifest'), 'utf8'),
+  readFile(join(distDir, 'sw.js'), 'utf8'),
 ])
 const manifest = JSON.parse(manifestText)
+const entryPath = html.match(/<script[^>]+src="([^"]+\.js)"/)?.[1]
+const entryBundle =
+  entryPath?.startsWith(expectedBase)
+    ? await readFile(join(distDir, entryPath.slice(expectedBase.length)), 'utf8')
+    : ''
 
 const checks = [
   [html.includes(`${expectedBase}assets/`), 'index.html asset URLs'],
   [html.includes(`${expectedBase}manifest.webmanifest`), 'manifest URL'],
   [manifest.start_url === expectedBase, 'manifest start_url'],
   [manifest.scope === expectedBase, 'manifest scope'],
-  [registerSw.includes(`${expectedBase}sw.js`), 'service worker registration'],
+  [!html.includes('registerSW.js'), 'single app-managed service worker registration'],
+  [entryBundle.includes(`${expectedBase}sw.js`), 'service worker registration'],
+  [entryBundle.includes('visibilitychange'), 'foreground update check'],
   [serviceWorker.includes(`${expectedBase}index.html`), 'navigation fallback'],
 ]
 

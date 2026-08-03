@@ -13,7 +13,7 @@ describe('Planning', () => {
     render(<App />)
 
     expect(screen.getByRole('heading', { name: 'Planning' })).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: '家庭生活时间轴' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: '家庭计划' })).toBeInTheDocument()
     expect(screen.getByText('雅思考试')).toBeInTheDocument()
     expect(screen.getByText('准备三亚行程')).toBeInTheDocument()
   })

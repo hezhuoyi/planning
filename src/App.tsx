@@ -92,7 +92,7 @@ function App() {
 
       <section className="workspace-bar" aria-label="视图工具">
         <div className="view-heading">
-          <strong>生活时间轴</strong>
+          <strong>家庭计划</strong>
           <span>{tasks.length} 项</span>
         </div>
 

@@ -143,7 +143,7 @@ export function GanttBoard({
   }, [boardWidth, focusTodayToken, todayLeft, todayVisible])
 
   return (
-    <section className="gantt-shell" aria-label="家庭生活时间轴">
+    <section className="gantt-shell" aria-label="家庭计划">
       <div className="gantt-scroll" ref={scrollRef}>
         <div ref={canvasRef} className="gantt-canvas zoom-period" style={{ width: boardWidth }}>
           <div className="gantt-header">

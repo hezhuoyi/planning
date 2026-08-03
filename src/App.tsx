@@ -122,16 +122,6 @@ function App() {
         onCreateAt={openNewTask}
       />
 
-      <footer className="status-legend" aria-label="任务状态图例">
-        <span><i className="legend-dot status-not-started" />未开始</span>
-        <span><i className="legend-dot status-in-progress" />进行中</span>
-        <span><i className="legend-dot status-ongoing" />持续</span>
-        <span><i className="legend-dot status-overdue" />已逾期</span>
-        <span><i className="legend-dot status-completed" />已完成</span>
-        <span className="footer-spacer" />
-        <span>数据范围随事项自动延伸</span>
-      </footer>
-
       {taskDialogOpen && (
         <TaskDialog
           task={editingTask}

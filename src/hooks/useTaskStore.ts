@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { seedTasks } from '../data/seedTasks'
+import { migrateTaskOwners } from '../domain/owners'
 import type { Task } from '../domain/types'
 import {
   createSupabase,
@@ -130,11 +131,14 @@ export function useTaskStore() {
 
       if (localRevisionRef.current === startingRevision) {
         const nextCache = cached ?? createInitialCache(owner)
-        tasksRef.current = sortTasks(nextCache.tasks)
-        pendingSyncRef.current = nextCache.pendingSync === true
+        const migrated = migrateTaskOwners(nextCache.tasks)
+        const ownersChanged = migrated !== nextCache.tasks
+        tasksRef.current = sortTasks(migrated)
+        pendingSyncRef.current = nextCache.pendingSync === true || ownersChanged
         remoteInitializedRef.current = nextCache.remoteInitialized === true
         localRevisionRef.current += 1
         setTasks(tasksRef.current)
+        if (ownersChanged) persistCurrent()
       } else {
         persistCurrent()
       }
@@ -206,10 +210,26 @@ export function useTaskStore() {
         if (!isCurrent()) return
         commitLocal(localSnapshot, { pendingSync: false, remoteInitialized: true })
       } else {
-        commitLocal((data ?? []).map(rowToTask), {
-          pendingSync: false,
+        const remoteTasks = migrateTaskOwners((data ?? []).map(rowToTask))
+        const ownersChanged = remoteTasks.some((task, index) => {
+          const original = data?.[index]
+          return original && task.owner !== original.owner
+        })
+        commitLocal(remoteTasks, {
+          pendingSync: ownersChanged,
           remoteInitialized: true,
         })
+        if (ownersChanged && remoteTasks.length) {
+          const { error: migrateError } = await supabase
+            .from('tasks')
+            .upsert(remoteTasks.map((task) => taskToRow(task)))
+          if (migrateError) {
+            handleSyncFailure(migrateError)
+            return
+          }
+          if (!isCurrent()) return
+          commitLocal(remoteTasks, { pendingSync: false, remoteInitialized: true })
+        }
       }
 
       setSyncError(null)

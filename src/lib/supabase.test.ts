@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Task } from '../domain/types'
-import { taskToRow } from './supabase'
+import { FAMILY_USER_ID, taskToRow } from './supabase'
 
 const task: Task = {
   id: 'task-1',
@@ -18,10 +18,10 @@ const task: Task = {
 }
 
 describe('taskToRow', () => {
-  it('binds a task row to the authenticated user for RLS writes', () => {
-    expect(taskToRow(task, 'user-123')).toEqual({
+  it('binds a task row to the shared family id by default', () => {
+    expect(taskToRow(task)).toEqual({
       id: 'task-1',
-      user_id: 'user-123',
+      user_id: FAMILY_USER_ID,
       title: 'Test task',
       start_date: '2026-08-03',
       end_date: null,

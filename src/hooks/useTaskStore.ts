@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { Session } from '@supabase/supabase-js'
 import { seedTasks } from '../data/seedTasks'
 import type { Task } from '../domain/types'
-import { createSupabase, getSupabaseConfig, rowToTask, taskToRow } from '../lib/supabase'
+import {
+  createSupabase,
+  FAMILY_USER_ID,
+  getSupabaseConfig,
+  isFamilyUnlocked,
+  rowToTask,
+  setFamilyUnlocked,
+  taskToRow,
+  verifyFamilyPasscode,
+} from '../lib/supabase'
 import { loadCachedTasks, saveCachedTasks, type TaskCacheState } from '../lib/storage'
 
 export type SyncState = 'local' | 'connecting' | 'synced' | 'offline' | 'error'
-
-export function getAuthRedirectUrl(
-  origin: string,
-  basePath = import.meta.env.BASE_URL,
-): string {
-  return new URL(basePath, `${origin}/`).toString()
-}
 
 const REALTIME_REFRESH_DELAY_MS = 50
 
@@ -41,10 +42,11 @@ export function useTaskStore() {
   const config = useMemo(() => getSupabaseConfig(), [])
   const supabase = useMemo(() => createSupabase(config), [config])
   const [tasks, setTasks] = useState<Task[]>(seedTasks)
-  const [session, setSession] = useState<Session | null>(null)
-  const [authReady, setAuthReady] = useState(!supabase)
+  const [unlocked, setUnlocked] = useState(() => Boolean(config) && isFamilyUnlocked())
   const [cacheOwner, setCacheOwner] = useState<string | null | undefined>(undefined)
-  const [syncState, setSyncState] = useState<SyncState>(config ? 'connecting' : 'local')
+  const [syncState, setSyncState] = useState<SyncState>(
+    config && isFamilyUnlocked() ? 'connecting' : 'local',
+  )
   const [syncError, setSyncError] = useState<string | null>(null)
 
   const tasksRef = useRef<Task[]>(seedTasks)
@@ -52,13 +54,14 @@ export function useTaskStore() {
   const pendingSyncRef = useRef(false)
   const remoteInitializedRef = useRef(false)
   const cacheOwnerRef = useRef<string | null>(null)
-  const sessionUserIdRef = useRef<string | null>(null)
+  const unlockedRef = useRef(unlocked)
   const hydrationTokenRef = useRef(0)
   const refreshInFlightRef = useRef<Promise<void> | null>(null)
   const refreshQueuedRef = useRef(false)
   const performRefreshRef = useRef<() => Promise<void>>(async () => undefined)
 
-  sessionUserIdRef.current = session?.user.id ?? null
+  unlockedRef.current = unlocked
+  const syncActive = Boolean(supabase && unlocked)
 
   const persistCurrent = useCallback(() => {
     const owner = cacheOwnerRef.current
@@ -95,31 +98,7 @@ export function useTaskStore() {
   }, [])
 
   useEffect(() => {
-    if (!supabase) return
-
-    void supabase.auth
-      .getSession()
-      .then(({ data, error }) => {
-        if (error) handleSyncFailure(error)
-        else setSession(data.session)
-        setAuthReady(true)
-      })
-      .catch((error: unknown) => {
-        handleSyncFailure(error)
-        setAuthReady(true)
-      })
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      sessionUserIdRef.current = nextSession?.user.id ?? null
-      setSession(nextSession)
-      setAuthReady(true)
-    })
-    return () => data.subscription.unsubscribe()
-  }, [handleSyncFailure, supabase])
-
-  useEffect(() => {
-    if (!authReady) return
-
-    const owner = session?.user.id ?? null
+    const owner = syncActive ? FAMILY_USER_ID : null
     const hydrationToken = hydrationTokenRef.current + 1
     const startingRevision = localRevisionRef.current
     hydrationTokenRef.current = hydrationToken
@@ -132,17 +111,17 @@ export function useTaskStore() {
       if (!owner && cached?.claimedBy) cached = null
 
       if (!cached && owner) {
-        const anonymousCache = await loadCachedTasks(null)
-        const canClaimAnonymous =
-          anonymousCache &&
-          (anonymousCache.claimedBy === null || anonymousCache.claimedBy === owner)
-        if (canClaimAnonymous) {
+        const localCache = await loadCachedTasks(null)
+        const canClaimLocal =
+          localCache &&
+          (localCache.claimedBy === null || localCache.claimedBy === owner)
+        if (canClaimLocal) {
           cached = {
-            ...anonymousCache,
+            ...localCache,
             claimedBy: owner,
             remoteInitialized: false,
           }
-          await saveCachedTasks(null, { ...anonymousCache, claimedBy: owner })
+          await saveCachedTasks(null, { ...localCache, claimedBy: owner })
           await saveCachedTasks(owner, cached)
         }
       }
@@ -162,15 +141,14 @@ export function useTaskStore() {
 
       setCacheOwner(owner)
     })()
-  }, [authReady, persistCurrent, session?.user.id])
+  }, [persistCurrent, syncActive])
 
   const performRefresh = useCallback(async () => {
-    if (!supabase || !session || cacheOwner !== session.user.id) return
-    const userId = session.user.id
+    if (!supabase || !unlockedRef.current || cacheOwner !== FAMILY_USER_ID) return
     const startingRevision = localRevisionRef.current
     const isCurrent = () =>
-      sessionUserIdRef.current === userId &&
-      cacheOwnerRef.current === userId &&
+      unlockedRef.current &&
+      cacheOwnerRef.current === FAMILY_USER_ID &&
       localRevisionRef.current === startingRevision
 
     setSyncState('connecting')
@@ -178,7 +156,7 @@ export function useTaskStore() {
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', FAMILY_USER_ID)
         .order('sort_order')
       if (error) {
         handleSyncFailure(error)
@@ -191,7 +169,7 @@ export function useTaskStore() {
         if (localSnapshot.length) {
           const { error: upsertError } = await supabase
             .from('tasks')
-            .upsert(localSnapshot.map((task) => taskToRow(task, userId)))
+            .upsert(localSnapshot.map((task) => taskToRow(task)))
           if (upsertError) {
             handleSyncFailure(upsertError)
             return
@@ -207,7 +185,7 @@ export function useTaskStore() {
           const { error: deleteError } = await supabase
             .from('tasks')
             .delete()
-            .eq('user_id', userId)
+            .eq('user_id', FAMILY_USER_ID)
             .in('id', staleIds)
           if (deleteError) {
             handleSyncFailure(deleteError)
@@ -220,7 +198,7 @@ export function useTaskStore() {
       } else if (!data?.length && !remoteInitializedRef.current && localSnapshot.length) {
         const { error: initializeError } = await supabase
           .from('tasks')
-          .upsert(localSnapshot.map((task) => taskToRow(task, userId)))
+          .upsert(localSnapshot.map((task) => taskToRow(task)))
         if (initializeError) {
           handleSyncFailure(initializeError)
           return
@@ -239,7 +217,7 @@ export function useTaskStore() {
     } catch (error) {
       handleSyncFailure(error)
     }
-  }, [cacheOwner, commitLocal, handleSyncFailure, session, supabase])
+  }, [cacheOwner, commitLocal, handleSyncFailure, supabase])
 
   performRefreshRef.current = performRefresh
 
@@ -263,8 +241,8 @@ export function useTaskStore() {
   }, [])
 
   useEffect(() => {
-    if (!supabase || !session || cacheOwner !== session.user.id) {
-      setSyncState(config ? 'connecting' : 'local')
+    if (!syncActive || cacheOwner !== FAMILY_USER_ID) {
+      setSyncState(config ? (unlocked ? 'connecting' : 'local') : 'local')
       return
     }
     void refreshRemote()
@@ -278,11 +256,16 @@ export function useTaskStore() {
       }, REALTIME_REFRESH_DELAY_MS)
     }
 
-    const channel = supabase
-      .channel(`tasks:${session.user.id}`)
+    const channel = supabase!
+      .channel(`tasks:${FAMILY_USER_ID}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'tasks', filter: `user_id=eq.${session.user.id}` },
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tasks',
+          filter: `user_id=eq.${FAMILY_USER_ID}`,
+        },
         scheduleRefresh,
       )
       .subscribe()
@@ -292,9 +275,9 @@ export function useTaskStore() {
     return () => {
       if (refreshTimer !== null) window.clearTimeout(refreshTimer)
       window.removeEventListener('online', handleOnline)
-      void supabase.removeChannel(channel)
+      void supabase!.removeChannel(channel)
     }
-  }, [cacheOwner, config, refreshRemote, session, supabase])
+  }, [cacheOwner, config, refreshRemote, supabase, syncActive, unlocked])
 
   const saveTask = useCallback(
     async (task: Task) => {
@@ -302,7 +285,7 @@ export function useTaskStore() {
       const next = [...tasksRef.current.filter((item) => item.id !== task.id), task]
       commitLocal(next, { pendingSync: true })
       const mutationRevision = localRevisionRef.current
-      if (!supabase || !session || cacheOwner !== session.user.id) return
+      if (!supabase || !unlockedRef.current || cacheOwner !== FAMILY_USER_ID) return
 
       if (hadPendingSync) {
         await refreshRemote()
@@ -310,7 +293,7 @@ export function useTaskStore() {
       }
 
       try {
-        const { error } = await supabase.from('tasks').upsert(taskToRow(task, session.user.id))
+        const { error } = await supabase.from('tasks').upsert(taskToRow(task))
         if (error) {
           handleSyncFailure(error)
           return
@@ -326,7 +309,7 @@ export function useTaskStore() {
         handleSyncFailure(error)
       }
     },
-    [cacheOwner, commitLocal, handleSyncFailure, refreshRemote, session, supabase],
+    [cacheOwner, commitLocal, handleSyncFailure, refreshRemote, supabase],
   )
 
   const deleteTask = useCallback(
@@ -334,7 +317,7 @@ export function useTaskStore() {
       const hadPendingSync = pendingSyncRef.current
       commitLocal(tasksRef.current.filter((task) => task.id !== id), { pendingSync: true })
       const mutationRevision = localRevisionRef.current
-      if (!supabase || !session || cacheOwner !== session.user.id) return
+      if (!supabase || !unlockedRef.current || cacheOwner !== FAMILY_USER_ID) return
 
       if (hadPendingSync) {
         await refreshRemote()
@@ -346,7 +329,7 @@ export function useTaskStore() {
           .from('tasks')
           .delete()
           .eq('id', id)
-          .eq('user_id', session.user.id)
+          .eq('user_id', FAMILY_USER_ID)
         if (error) {
           handleSyncFailure(error)
           return
@@ -362,48 +345,47 @@ export function useTaskStore() {
         handleSyncFailure(error)
       }
     },
-    [cacheOwner, commitLocal, handleSyncFailure, refreshRemote, session, supabase],
+    [cacheOwner, commitLocal, handleSyncFailure, refreshRemote, supabase],
   )
 
   const importTasks = useCallback(
     async (incoming: Task[]) => {
       commitLocal(incoming, { pendingSync: true })
-      if (supabase && session && cacheOwner === session.user.id) await refreshRemote()
+      if (supabase && unlockedRef.current && cacheOwner === FAMILY_USER_ID) {
+        await refreshRemote()
+      }
     },
-    [cacheOwner, commitLocal, refreshRemote, session, supabase],
+    [cacheOwner, commitLocal, refreshRemote, supabase],
   )
 
-  const sendMagicLink = useCallback(
-    async (email: string) => {
-      if (!supabase) throw new Error('请先配置 Supabase')
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: getAuthRedirectUrl(window.location.origin) },
-      })
-      if (error) throw error
-    },
-    [supabase],
-  )
-
-  const signOut = useCallback(async () => {
-    await supabase?.auth.signOut()
-    sessionUserIdRef.current = null
-    setSession(null)
+  const unlockWithPasscode = useCallback((passcode: string) => {
+    if (!verifyFamilyPasscode(passcode)) {
+      throw new Error('口令不正确')
+    }
+    setFamilyUnlocked(true)
+    setUnlocked(true)
     setSyncError(null)
-    setSyncState(config ? 'connecting' : 'local')
-  }, [config, supabase])
+    setSyncState('connecting')
+  }, [])
+
+  const lockSync = useCallback(() => {
+    setFamilyUnlocked(false)
+    setUnlocked(false)
+    setSyncError(null)
+    setSyncState('local')
+  }, [])
 
   return {
     tasks,
     saveTask,
     deleteTask,
     importTasks,
-    session,
+    unlocked,
     syncState,
     syncError,
     isConfigured: Boolean(config),
-    sendMagicLink,
-    signOut,
+    unlockWithPasscode,
+    lockSync,
     refreshRemote,
   }
 }

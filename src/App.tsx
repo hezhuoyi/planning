@@ -15,7 +15,7 @@ import type { Task } from './domain/types'
 import { useTaskStore, type SyncState } from './hooks/useTaskStore'
 
 const SYNC_LABELS: Record<SyncState, string> = {
-  local: '云同步未开启',
+  local: '输入口令同步',
   connecting: '云同步连接中',
   synced: '云同步已开启',
   offline: '云同步离线',
@@ -27,12 +27,12 @@ function App() {
     tasks,
     saveTask,
     deleteTask,
-    session,
+    unlocked,
     syncState,
     syncError,
     isConfigured,
-    sendMagicLink,
-    signOut,
+    unlockWithPasscode,
+    lockSync,
   } = useTaskStore()
   const [focusTodayToken, setFocusTodayToken] = useState(0)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
@@ -53,6 +53,7 @@ function App() {
   }
 
   const nextSortOrder = Math.max(0, ...tasks.map((task) => task.sortOrder)) + 10
+  const syncLabel = unlocked ? SYNC_LABELS[syncState] : SYNC_LABELS.local
 
   return (
     <main className="app-shell">
@@ -84,19 +85,21 @@ function App() {
         </div>
 
         <div className="toolbar">
-          <button
-            className={`sync-button state-${syncState}`}
-            type="button"
-            onClick={() => setSyncDialogOpen(true)}
-            title="配置或查看云同步"
-          >
-            {syncState === 'offline' || syncState === 'error' ? (
-              <CloudOff size={15} aria-hidden="true" />
-            ) : (
-              <Cloud size={15} aria-hidden="true" />
-            )}
-            {SYNC_LABELS[syncState]}
-          </button>
+          {isConfigured && (
+            <button
+              className={`sync-button state-${unlocked ? syncState : 'local'}`}
+              type="button"
+              onClick={() => setSyncDialogOpen(true)}
+              title="家庭口令同步"
+            >
+              {unlocked && (syncState === 'offline' || syncState === 'error') ? (
+                <CloudOff size={15} aria-hidden="true" />
+              ) : (
+                <Cloud size={15} aria-hidden="true" />
+              )}
+              {syncLabel}
+            </button>
+          )}
         </div>
       </section>
 
@@ -134,14 +137,13 @@ function App() {
         />
       )}
 
-      {syncDialogOpen && (
+      {syncDialogOpen && isConfigured && (
         <SyncDialog
-          session={session}
-          isConfigured={isConfigured}
+          unlocked={unlocked}
           syncError={syncError}
           onClose={() => setSyncDialogOpen(false)}
-          onSendMagicLink={sendMagicLink}
-          onSignOut={signOut}
+          onUnlock={unlockWithPasscode}
+          onLock={lockSync}
         />
       )}
     </main>

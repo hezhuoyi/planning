@@ -3,12 +3,15 @@
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Task } from '../domain/types'
-import { getAuthRedirectUrl, useTaskStore } from './useTaskStore'
+import { FAMILY_USER_ID } from '../lib/supabase'
+import { useTaskStore } from './useTaskStore'
 
 const mocks = vi.hoisted(() => ({
   createSupabase: vi.fn(),
   loadCachedTasks: vi.fn(),
   saveCachedTasks: vi.fn(),
+  isFamilyUnlocked: vi.fn(() => true),
+  setFamilyUnlocked: vi.fn(),
 }))
 
 vi.mock('../lib/supabase', async (importOriginal) => {
@@ -17,6 +20,8 @@ vi.mock('../lib/supabase', async (importOriginal) => {
     ...actual,
     createSupabase: mocks.createSupabase,
     getSupabaseConfig: () => ({ url: 'https://example.supabase.co', anonKey: 'anon-key' }),
+    isFamilyUnlocked: () => mocks.isFamilyUnlocked(),
+    setFamilyUnlocked: mocks.setFamilyUnlocked,
   }
 })
 
@@ -33,7 +38,7 @@ type Operation = {
 
 const remoteRow = {
   id: 'remote-task',
-  user_id: 'user-123',
+  user_id: FAMILY_USER_ID,
   title: 'Remote task',
   start_date: '2026-08-03',
   end_date: null,
@@ -75,9 +80,6 @@ function createFakeSupabase(
   const operations: Operation[] = []
   let realtimeCallback: (() => void) | null = null
   let realtimeFilter: Record<string, string> | null = null
-  let authStateCallback:
-    | ((_event: string, nextSession: { user: { id: string } } | null) => void)
-    | null = null
   let rejectUpsert = options.rejectUpsert ?? false
   let remoteRows = options.remoteRows ?? [remoteRow]
   let deferNextSelect = false
@@ -130,21 +132,6 @@ function createFakeSupabase(
   }
 
   const client = {
-    auth: {
-      getSession: () =>
-        Promise.resolve({
-          data: { session: { user: { id: 'user-123' } } },
-          error: null,
-        }),
-      onAuthStateChange: (
-        callback: (_event: string, nextSession: { user: { id: string } } | null) => void,
-      ) => {
-        authStateCallback = callback
-        return { data: { subscription: { unsubscribe: vi.fn() } } }
-      },
-      signInWithOtp: vi.fn(),
-      signOut: vi.fn(),
-    },
     from: () => ({
       select: () => {
         const operation: Operation = { kind: 'select', filters: [] }
@@ -203,18 +190,13 @@ function createFakeSupabase(
       resolveDeferredUpsert?.()
       resolveDeferredUpsert = null
     },
-    triggerAuth: (userId: string | null) => {
-      authStateCallback?.(
-        userId ? 'SIGNED_IN' : 'SIGNED_OUT',
-        userId ? { user: { id: userId } } : null,
-      )
-    },
   }
 }
 
 beforeEach(() => {
   mocks.loadCachedTasks.mockResolvedValue(null)
   mocks.saveCachedTasks.mockResolvedValue(undefined)
+  mocks.isFamilyUnlocked.mockReturnValue(true)
 })
 
 afterEach(() => {
@@ -224,13 +206,7 @@ afterEach(() => {
 })
 
 describe('useTaskStore cloud synchronization', () => {
-  it('keeps the deployment base path in authentication redirects', () => {
-    expect(getAuthRedirectUrl('https://hezhuoyi.github.io', '/planning/')).toBe(
-      'https://hezhuoyi.github.io/planning/',
-    )
-  })
-
-  it('scopes remote reads and deletes to the authenticated user', async () => {
+  it('scopes remote reads and deletes to the shared family id', async () => {
     const fake = createFakeSupabase()
     mocks.createSupabase.mockReturnValue(fake.client)
     const { result } = renderHook(() => useTaskStore())
@@ -239,7 +215,7 @@ describe('useTaskStore cloud synchronization', () => {
       expect(fake.operations.filter(({ kind }) => kind === 'select')).toHaveLength(1)
     })
 
-    expect(fake.operations[0]?.filters).toEqual([['user_id', 'user-123']])
+    expect(fake.operations[0]?.filters).toEqual([['user_id', FAMILY_USER_ID]])
 
     await act(async () => {
       await result.current.deleteTask('remote-task')
@@ -247,12 +223,14 @@ describe('useTaskStore cloud synchronization', () => {
 
     expect(fake.operations.find(({ kind }) => kind === 'delete')?.filters).toEqual([
       ['id', 'remote-task'],
-      ['user_id', 'user-123'],
+      ['user_id', FAMILY_USER_ID],
     ])
-    expect(fake.getRealtimeFilter()).toMatchObject({ filter: 'user_id=eq.user-123' })
+    expect(fake.getRealtimeFilter()).toMatchObject({
+      filter: `user_id=eq.${FAMILY_USER_ID}`,
+    })
   })
 
-  it('binds saves and imports to the authenticated user', async () => {
+  it('binds saves and imports to the shared family id', async () => {
     const fake = createFakeSupabase()
     mocks.createSupabase.mockReturnValue(fake.client)
     const { result } = renderHook(() => useTaskStore())
@@ -271,8 +249,8 @@ describe('useTaskStore cloud synchronization', () => {
       .map(({ payload }) => payload)
 
     expect(payloads).toEqual([
-      expect.objectContaining({ id: 'local-task', user_id: 'user-123' }),
-      [expect.objectContaining({ id: 'local-task', user_id: 'user-123' })],
+      expect.objectContaining({ id: 'local-task', user_id: FAMILY_USER_ID }),
+      [expect.objectContaining({ id: 'local-task', user_id: FAMILY_USER_ID })],
     ])
   })
 
@@ -334,7 +312,7 @@ describe('useTaskStore cloud synchronization', () => {
     })
 
     expect(fake.operations.find(({ kind }) => kind === 'upsert')?.payload).toEqual([
-      expect.objectContaining({ id: 'local-task', user_id: 'user-123' }),
+      expect.objectContaining({ id: 'local-task', user_id: FAMILY_USER_ID }),
     ])
   })
 
@@ -359,9 +337,7 @@ describe('useTaskStore cloud synchronization', () => {
     })
 
     expect(result.current.tasks).toEqual([])
-    expect(
-      fake.operations.filter(({ kind }) => kind === 'upsert'),
-    ).toHaveLength(0)
+    expect(fake.operations.filter(({ kind }) => kind === 'upsert')).toHaveLength(0)
   })
 
   it('pushes pending local changes before reading remote state after reconnect', async () => {
@@ -387,7 +363,7 @@ describe('useTaskStore cloud synchronization', () => {
     expect(fake.operations.at(-1)?.kind).toBe('upsert')
     expect(fake.operations.at(-1)?.payload).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: 'local-task', user_id: 'user-123' }),
+        expect.objectContaining({ id: 'local-task', user_id: FAMILY_USER_ID }),
       ]),
     )
   })
@@ -406,7 +382,7 @@ describe('useTaskStore cloud synchronization', () => {
     })
 
     expect(fake.operations.find(({ kind }) => kind === 'delete')?.filters).toEqual([
-      ['user_id', 'user-123'],
+      ['user_id', FAMILY_USER_ID],
       ['id', ['remote-task']],
     ])
   })
@@ -446,7 +422,7 @@ describe('useTaskStore cloud synchronization', () => {
     mocks.loadCachedTasks.mockResolvedValue({
       tasks: [localTask],
       pendingSync: true,
-      claimedBy: 'user-123',
+      claimedBy: FAMILY_USER_ID,
     })
     const { result } = renderHook(() => useTaskStore())
 
@@ -456,7 +432,7 @@ describe('useTaskStore cloud synchronization', () => {
 
     expect(result.current.tasks).toEqual([localTask])
     expect(fake.operations.find(({ kind }) => kind === 'upsert')?.payload).toEqual([
-      expect.objectContaining({ id: 'local-task', user_id: 'user-123' }),
+      expect.objectContaining({ id: 'local-task', user_id: FAMILY_USER_ID }),
     ])
   })
 
@@ -473,14 +449,14 @@ describe('useTaskStore cloud synchronization', () => {
     const { result } = renderHook(() => useTaskStore())
 
     await waitFor(() => {
-      expect(result.current.session?.user.id).toBe('user-123')
+      expect(result.current.unlocked).toBe(true)
     })
     await act(async () => {
       await result.current.saveTask(localTask)
     })
 
     act(() => {
-      resolveCache?.({ tasks: [], pendingSync: false, claimedBy: 'user-123' })
+      resolveCache?.({ tasks: [], pendingSync: false, claimedBy: FAMILY_USER_ID })
     })
 
     await waitFor(() => {
@@ -561,54 +537,45 @@ describe('useTaskStore cloud synchronization', () => {
     expect(fake.operations.filter(({ kind }) => kind === 'select')).toHaveLength(3)
   })
 
-  it('does not upload an anonymous cache already claimed by another user', async () => {
-    const fake = createFakeSupabase({ remoteRows: [] })
+  it('does not sync until the family passcode unlocks', async () => {
+    mocks.isFamilyUnlocked.mockReturnValue(false)
+    const fake = createFakeSupabase()
     mocks.createSupabase.mockReturnValue(fake.client)
-    mocks.loadCachedTasks.mockImplementation(async (userId: string | null) => {
-      if (userId) return null
-      return { tasks: [localTask], pendingSync: false, claimedBy: 'user-A' }
+    const { result } = renderHook(() => useTaskStore())
+
+    await waitFor(() => {
+      expect(result.current.unlocked).toBe(false)
+      expect(result.current.syncState).toBe('local')
     })
-    renderHook(() => useTaskStore())
+    expect(fake.operations).toHaveLength(0)
+
+    await act(async () => {
+      result.current.unlockWithPasscode('wang')
+    })
+
+    await waitFor(() => {
+      expect(result.current.unlocked).toBe(true)
+      expect(fake.operations.some(({ kind }) => kind === 'select')).toBe(true)
+    })
+    expect(mocks.setFamilyUnlocked).toHaveBeenCalledWith(true)
+  })
+
+  it('stops syncing after lock', async () => {
+    const fake = createFakeSupabase()
+    mocks.createSupabase.mockReturnValue(fake.client)
+    const { result } = renderHook(() => useTaskStore())
 
     await waitFor(() => {
       expect(fake.operations.filter(({ kind }) => kind === 'select')).toHaveLength(1)
     })
 
-    const uploadedIds = fake.operations
-      .filter(({ kind }) => kind === 'upsert')
-      .flatMap(({ payload }) => (Array.isArray(payload) ? payload : [payload]))
-      .map((row) => (row as { id?: string } | undefined)?.id)
-    expect(uploadedIds).not.toContain('local-task')
-  })
-
-  it('does not expose a claimed user cache after sign out', async () => {
-    const fake = createFakeSupabase()
-    mocks.createSupabase.mockReturnValue(fake.client)
-    mocks.loadCachedTasks.mockImplementation(async (userId: string | null) => {
-      if (userId) return null
-      return {
-        tasks: [localTask],
-        pendingSync: false,
-        claimedBy: 'user-123',
-        remoteInitialized: false,
-      }
+    await act(async () => {
+      result.current.lockSync()
     })
-    const { result } = renderHook(() => useTaskStore())
 
-    await waitFor(() => {
-      expect(result.current.tasks).toContainEqual(
-        expect.objectContaining({ id: 'remote-task' }),
-      )
-    })
-    act(() => fake.triggerAuth(null))
-
-    await waitFor(() => {
-      expect(result.current.session).toBeNull()
-      expect(result.current.tasks).toContainEqual(
-        expect.objectContaining({ id: 'weight-aug-2026' }),
-      )
-      expect(result.current.tasks).not.toContainEqual(localTask)
-    })
+    expect(result.current.unlocked).toBe(false)
+    expect(result.current.syncState).toBe('local')
+    expect(mocks.setFamilyUnlocked).toHaveBeenCalledWith(false)
   })
 
   it('keeps both tasks when saves happen back to back', async () => {

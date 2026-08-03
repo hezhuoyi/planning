@@ -1,5 +1,5 @@
 create table if not exists public.tasks (
-  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  user_id uuid not null default '00000000-0000-4000-8000-000000000001'::uuid,
   id text not null,
   title text not null check (length(trim(title)) > 0),
   start_date date not null,
@@ -37,33 +37,38 @@ for each row execute function public.set_tasks_updated_at();
 
 alter table public.tasks enable row level security;
 
+-- 家庭口令模式：anon 只能读写固定家庭 user_id 这一份数据
 drop policy if exists "tasks_select_own" on public.tasks;
-create policy "tasks_select_own"
-on public.tasks for select
-to authenticated
-using ((select auth.uid()) = user_id);
-
 drop policy if exists "tasks_insert_own" on public.tasks;
-create policy "tasks_insert_own"
-on public.tasks for insert
-to authenticated
-with check ((select auth.uid()) = user_id);
-
 drop policy if exists "tasks_update_own" on public.tasks;
-create policy "tasks_update_own"
-on public.tasks for update
-to authenticated
-using ((select auth.uid()) = user_id)
-with check ((select auth.uid()) = user_id);
-
 drop policy if exists "tasks_delete_own" on public.tasks;
-create policy "tasks_delete_own"
-on public.tasks for delete
-to authenticated
-using ((select auth.uid()) = user_id);
+drop policy if exists "tasks_select_family" on public.tasks;
+drop policy if exists "tasks_insert_family" on public.tasks;
+drop policy if exists "tasks_update_family" on public.tasks;
+drop policy if exists "tasks_delete_family" on public.tasks;
 
-revoke all on table public.tasks from anon;
-grant select, insert, update, delete on table public.tasks to authenticated;
+create policy "tasks_select_family"
+on public.tasks for select
+to anon, authenticated
+using (user_id = '00000000-0000-4000-8000-000000000001'::uuid);
+
+create policy "tasks_insert_family"
+on public.tasks for insert
+to anon, authenticated
+with check (user_id = '00000000-0000-4000-8000-000000000001'::uuid);
+
+create policy "tasks_update_family"
+on public.tasks for update
+to anon, authenticated
+using (user_id = '00000000-0000-4000-8000-000000000001'::uuid)
+with check (user_id = '00000000-0000-4000-8000-000000000001'::uuid);
+
+create policy "tasks_delete_family"
+on public.tasks for delete
+to anon, authenticated
+using (user_id = '00000000-0000-4000-8000-000000000001'::uuid);
+
+grant select, insert, update, delete on table public.tasks to anon, authenticated;
 
 do $$
 begin
@@ -78,5 +83,4 @@ begin
   ) then
     execute 'alter publication supabase_realtime add table public.tasks';
   end if;
-end;
-$$;
+end $$;

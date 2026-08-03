@@ -1,12 +1,25 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { Task, TaskCategory, TaskType } from '../domain/types'
 
-const CONFIG_KEY = 'mainline.supabase.config.v1'
-
 export interface SupabaseConfig {
   url: string
   anonKey: string
 }
+
+/** 写死的 Supabase 配置 */
+const HARDCODED_SUPABASE: SupabaseConfig = {
+  url: 'https://cirbniblcgzyfuizjzig.supabase.co',
+  anonKey:
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpcmJuaWJsY2d6eWZ1aXpqemlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDY2MTgsImV4cCI6MjEwMTMyMjYxOH0.wDorCxTxsk2WzIAfw90CxoJrFUJt8q1BKr3O3EhHB0I',
+}
+
+/** 家庭口令：对了就能同步，全家人共用同一份云数据 */
+export const FAMILY_PASSCODE = 'wang'
+
+/** 固定家庭 user_id，所有设备读写同一份 tasks */
+export const FAMILY_USER_ID = '00000000-0000-4000-8000-000000000001'
+
+const UNLOCK_KEY = 'mainline.family.unlock.v1'
 
 interface TaskRow {
   id: string
@@ -24,34 +37,51 @@ interface TaskRow {
   updated_at: string
 }
 
-export function getSupabaseConfig(): SupabaseConfig | null {
-  const envUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined
-  const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
-  if (envUrl && envKey) return { url: envUrl, anonKey: envKey }
-
-  if (typeof localStorage === 'undefined') return null
-  try {
-    const stored = JSON.parse(localStorage.getItem(CONFIG_KEY) ?? 'null') as SupabaseConfig | null
-    return stored?.url && stored?.anonKey ? stored : null
-  } catch {
-    return null
-  }
+function isPlaceholder(config: SupabaseConfig): boolean {
+  return (
+    !config.url ||
+    !config.anonKey ||
+    config.url.includes('YOUR_PROJECT') ||
+    config.anonKey === 'YOUR_ANON_KEY'
+  )
 }
 
-export function storeSupabaseConfig(config: SupabaseConfig | null): void {
-  if (typeof localStorage === 'undefined') return
-  if (config) localStorage.setItem(CONFIG_KEY, JSON.stringify(config))
-  else localStorage.removeItem(CONFIG_KEY)
+export function getSupabaseConfig(): SupabaseConfig | null {
+  const envUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim()
+  const envKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim()
+  if (envUrl && envKey) return { url: envUrl, anonKey: envKey }
+
+  if (isPlaceholder(HARDCODED_SUPABASE)) return null
+  return HARDCODED_SUPABASE
 }
 
 export function createSupabase(config: SupabaseConfig | null): SupabaseClient | null {
   if (!config) return null
   return createClient(config.url, config.anonKey, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
   })
 }
 
-export function taskToRow(task: Task, userId: string): TaskRow {
+export function isFamilyUnlocked(): boolean {
+  if (typeof localStorage === 'undefined') return false
+  return localStorage.getItem(UNLOCK_KEY) === '1'
+}
+
+export function setFamilyUnlocked(unlocked: boolean): void {
+  if (typeof localStorage === 'undefined') return
+  if (unlocked) localStorage.setItem(UNLOCK_KEY, '1')
+  else localStorage.removeItem(UNLOCK_KEY)
+}
+
+export function verifyFamilyPasscode(input: string): boolean {
+  return input.trim() === FAMILY_PASSCODE
+}
+
+export function taskToRow(task: Task, userId: string = FAMILY_USER_ID): TaskRow {
   return {
     id: task.id,
     user_id: userId,

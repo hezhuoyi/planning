@@ -9,11 +9,13 @@ npm install
 npm run dev
 ```
 
-## 可选：Supabase 云同步
+## 可选：Supabase 云同步（家庭口令）
 
-1. 在 Supabase SQL Editor 执行 `supabase/schema.sql`。
-2. 将项目 URL 和 anon key 填入应用的“云同步”对话框；也可复制 `.env.example` 为 `.env.local` 后填写。
-3. 本地使用邮箱魔法链接时，在 Supabase Auth URL Configuration 中添加 `http://localhost:5173`。
+1. 在 Supabase SQL Editor 执行 `supabase/schema.sql`（已有旧表则执行 `supabase/migrate-to-passcode.sql`）。
+2. 应用内点「输入口令同步」，口令默认是 `wang`（可在 `src/lib/supabase.ts` 的 `FAMILY_PASSCODE` 修改）。
+3. 口令正确后，各设备共用同一份云端计划，无需邮箱登录。
+
+未解锁时只使用本机存储。
 
 生产构建：`npm run build`。
 

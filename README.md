@@ -19,7 +19,7 @@ npm run dev
 
 ## GitHub Pages
 
-推送到 `main` 后由 GitHub Actions 自动部署：
+推送到 `main` 后由 GitHub Actions 自动发布已构建的 `dist`：
 
 `https://hezhuoyi.github.io/planning/`
 
@@ -28,4 +28,5 @@ npm run dev
 ```bash
 VITE_BASE_PATH=/planning/ npm run build
 npm run verify:pages
+git add -f dist
 ```

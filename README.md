@@ -16,3 +16,16 @@ npm run dev
 3. 本地使用邮箱魔法链接时，在 Supabase Auth URL Configuration 中添加 `http://localhost:5173`。
 
 生产构建：`npm run build`。
+
+## GitHub Pages
+
+推送到 `main` 后由 GitHub Actions 自动部署：
+
+`https://hezhuoyi.github.io/planning/`
+
+本地验证 Pages 构建：
+
+```bash
+VITE_BASE_PATH=/planning/ npm run build
+npm run verify:pages
+```

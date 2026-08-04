@@ -45,12 +45,41 @@ export function TaskDialog({
   const [draft, setDraft] = useState(() => makeDraft(task, initialDate, nextSortOrder))
   const [error, setError] = useState('')
   const [shakeToken, setShakeToken] = useState(0)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const { leaving, requestClose } = useDialogMotion(onClose)
 
   useEffect(() => {
     setDraft(makeDraft(task, initialDate, nextSortOrder))
     setError('')
+    setConfirmDelete(false)
   }, [initialDate, nextSortOrder, task])
+
+  const fail = (message: string) => {
+    setError(message)
+    setShakeToken((value) => value + 1)
+  }
+
+  const updateStartDate = (startDate: string) => {
+    setDraft((current) => {
+      if (current.type === 'milestone') {
+        return { ...current, startDate, endDate: startDate }
+      }
+      const endDate =
+        current.endDate && current.endDate < startDate ? startDate : current.endDate
+      return { ...current, startDate, endDate }
+    })
+    setError('')
+  }
+
+  const updateEndDate = (endDate: string) => {
+    if (endDate && endDate < draft.startDate) {
+      fail('结束日期不能早于开始日期')
+      setDraft((current) => ({ ...current, endDate: current.startDate }))
+      return
+    }
+    setDraft((current) => ({ ...current, endDate }))
+    setError('')
+  }
 
   const setType = (type: TaskType) => {
     setDraft((current) => ({
@@ -61,13 +90,9 @@ export function TaskDialog({
     }))
   }
 
-  const fail = (message: string) => {
-    setError(message)
-    setShakeToken((value) => value + 1)
-  }
-
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
+    if (confirmDelete) return
     if (!draft.title.trim()) {
       fail('请输入任务名称')
       return
@@ -113,18 +138,46 @@ export function TaskDialog({
         <header className="dialog-header">
           <div>
             <p className="eyebrow">小事一桩</p>
-            <h2 id="task-dialog-title">{task ? '改一改安排' : '记一件新事'}</h2>
+            <h2 id="task-dialog-title">
+              {confirmDelete ? '确认删除？' : task ? '改一改安排' : '记一件新事'}
+            </h2>
           </div>
           <button
             className="icon-button"
             type="button"
-            onClick={requestClose}
-            aria-label="关闭"
+            onClick={confirmDelete ? () => setConfirmDelete(false) : requestClose}
+            aria-label={confirmDelete ? '取消删除' : '关闭'}
           >
             <X aria-hidden="true" />
           </button>
         </header>
 
+        {confirmDelete && task ? (
+          <div className="delete-confirm">
+            <p>
+              删除后无法恢复：「{task.title}」
+            </p>
+            <footer className="dialog-actions">
+              <button
+                className="button"
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+              >
+                再想想
+              </button>
+              <button
+                className="button danger-button"
+                type="button"
+                onClick={() => {
+                  onDelete(task.id)
+                  requestClose()
+                }}
+              >
+                <Trash2 size={16} aria-hidden="true" />确认删除
+              </button>
+            </footer>
+          </div>
+        ) : (
         <form className={shakeToken ? 'is-shaking' : undefined} key={shakeToken} onSubmit={submit}>
           <label className="field full-field field-delay-1">
             <span>任务名称</span>
@@ -161,13 +214,7 @@ export function TaskDialog({
               <input
                 type="date"
                 value={draft.startDate}
-                onChange={(event) =>
-                  setDraft({
-                    ...draft,
-                    startDate: event.target.value,
-                    endDate: draft.type === 'milestone' ? event.target.value : draft.endDate,
-                  })
-                }
+                onChange={(event) => updateStartDate(event.target.value)}
               />
             </label>
             <label className="field">
@@ -175,8 +222,9 @@ export function TaskDialog({
               <input
                 type="date"
                 value={draft.endDate ?? ''}
+                min={draft.startDate}
                 disabled={draft.isOngoing || draft.type === 'milestone'}
-                onChange={(event) => setDraft({ ...draft, endDate: event.target.value })}
+                onChange={(event) => updateEndDate(event.target.value)}
               />
             </label>
             <label className="field">
@@ -217,35 +265,37 @@ export function TaskDialog({
             </label>
           </div>
 
-          {draft.type === 'range' && (
-            <label className="check-row field-delay-4">
+          <div className="check-rows field-delay-4">
+            {draft.type === 'range' && (
+              <label className="check-row">
+                <input
+                  type="checkbox"
+                  checked={draft.isOngoing}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      isOngoing: event.target.checked,
+                      endDate: event.target.checked ? null : draft.startDate,
+                    })
+                  }
+                />
+                <span>持续进行</span>
+              </label>
+            )}
+            <label className="check-row">
               <input
                 type="checkbox"
-                checked={draft.isOngoing}
+                checked={Boolean(draft.completedAt)}
                 onChange={(event) =>
                   setDraft({
                     ...draft,
-                    isOngoing: event.target.checked,
-                    endDate: event.target.checked ? null : draft.startDate,
+                    completedAt: event.target.checked ? new Date().toISOString() : null,
                   })
                 }
               />
-              <span>持续进行，暂不设置结束日期</span>
+              <span>已完成</span>
             </label>
-          )}
-          <label className="check-row field-delay-4">
-            <input
-              type="checkbox"
-              checked={Boolean(draft.completedAt)}
-              onChange={(event) =>
-                setDraft({
-                  ...draft,
-                  completedAt: event.target.checked ? new Date().toISOString() : null,
-                })
-              }
-            />
-            <span>已完成</span>
-          </label>
+          </div>
 
           {error && <p className="form-error">{error}</p>}
 
@@ -255,10 +305,8 @@ export function TaskDialog({
                 className="button danger-button"
                 type="button"
                 onClick={() => {
-                  if (window.confirm(`删除“${task.title}”？`)) {
-                    onDelete(task.id)
-                    requestClose()
-                  }
+                  setError('')
+                  setConfirmDelete(true)
                 }}
               >
                 <Trash2 size={16} aria-hidden="true" />删除
@@ -272,6 +320,7 @@ export function TaskDialog({
             </button>
           </footer>
         </form>
+        )}
       </dialog>
     </div>
   )

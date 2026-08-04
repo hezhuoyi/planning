@@ -96,7 +96,6 @@ export function getPlanSummary(
     (status) => status === 'in_progress' || status === 'ongoing',
   ).length
   const total = scoped.length
-  const monthLabel = `${monthAnchor.getMonth() + 1}月`
   const kicker = scope === 'month' ? '本月速览' : '全部计划'
 
   if (total === 0) {
@@ -107,7 +106,7 @@ export function getPlanSummary(
       upcoming,
       overdue,
       kicker,
-      headline: scope === 'month' ? `${monthLabel}还没有安排` : '还没有安排事项',
+      headline: scope === 'month' ? '本月还没有安排' : '还没有安排事项',
       detail: '点右上角「新增」，把想做的事放上时间轴吧',
     }
   }
@@ -120,8 +119,8 @@ export function getPlanSummary(
       upcoming,
       overdue,
       kicker,
-      headline: scope === 'month' ? `${monthLabel}的计划都完成啦` : '太棒了，计划都完成啦',
-      detail: `一共 ${total} 项，全部划掉了`,
+      headline: scope === 'month' ? '本月的计划都完成啦' : '太棒了，计划都完成啦',
+      detail: '',
     }
   }
 
@@ -131,18 +130,9 @@ export function getPlanSummary(
   if (overdue) parts.push(`${overdue} 项已逾期`)
   if (completed) parts.push(`已完成 ${completed} 项`)
 
+  const joined = parts.join(' · ')
   const headline =
-    scope === 'month'
-      ? overdue > 0
-        ? `${monthLabel}有 ${overdue} 项需要留意`
-        : inFlight > 0
-          ? `${monthLabel}有 ${inFlight} 项正在推进`
-          : `${monthLabel}还有 ${upcoming} 项安排`
-      : overdue > 0
-        ? `一共 ${total} 项，其中 ${overdue} 项需留意`
-        : inFlight > 0
-          ? `一共 ${total} 项，${inFlight} 项正在推进`
-          : `一共 ${total} 项家庭计划`
+    scope === 'month' ? `本月 ${joined}` : joined || `共 ${total} 项`
 
   return {
     total,
@@ -152,7 +142,7 @@ export function getPlanSummary(
     overdue,
     kicker,
     headline,
-    detail: parts.join(' · ') || `共 ${total} 项`,
+    detail: '',
   }
 }
 

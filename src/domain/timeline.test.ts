@@ -88,7 +88,9 @@ describe('getPlanSummary', () => {
     expect(summary.total).toBe(3)
     expect(summary.completed).toBe(1)
     expect(summary.overdue).toBe(1)
-    expect(summary.headline).toContain('8月')
+    expect(summary.headline).toContain('本月')
+    expect(summary.headline).toContain('进行中')
+    expect(summary.detail).toBe('')
   })
 
   it('summarizes every task in the all scope', () => {
@@ -108,7 +110,8 @@ describe('getPlanSummary', () => {
 
     expect(summary.kicker).toBe('全部计划')
     expect(summary.total).toBe(2)
-    expect(summary.headline).toContain('一共 2 项')
+    expect(summary.headline).toMatch(/进行中|待开始/)
+    expect(summary.detail).toBe('')
   })
 })
 

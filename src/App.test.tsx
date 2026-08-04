@@ -71,7 +71,7 @@ describe('Planning', () => {
     render(<App />)
 
     await user.click(screen.getByRole('button', { name: '新增事项' }))
-    const ongoing = screen.getByRole('checkbox', { name: '持续进行，暂不设置结束日期' })
+    const ongoing = screen.getByRole('checkbox', { name: '持续进行' })
     const endDate = screen.getByLabelText('结束日期')
 
     await user.click(ongoing)

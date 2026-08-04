@@ -284,17 +284,19 @@ export function GanttBoard({
                 ))}
               </div>
             )}
-            <div className="month-row">
-              {monthBlocks.map((block) => (
-                <div
-                  className="header-block month-block"
-                  key={block.key}
-                  style={{ left: `${block.left}%`, width: `${block.width}%` }}
-                >
-                  {block.label}
-                </div>
-              ))}
-            </div>
+            {!fitMonth && (
+              <div className="month-row">
+                {monthBlocks.map((block) => (
+                  <div
+                    className="header-block month-block"
+                    key={block.key}
+                    style={{ left: `${block.left}%`, width: `${block.width}%` }}
+                  >
+                    {block.label}
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="period-row">
               {periodBlocks.map((block) => (
                 <div

@@ -644,6 +644,14 @@
   height: 44px;
 }
 
+.gantt-canvas.is-month .gantt-header {
+  height: 28px;
+}
+
+.gantt-canvas.is-month .period-row {
+  height: 28px;
+}
+
 .year-row,
 .month-row,
 .period-row {
@@ -1177,8 +1185,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  padding: 20px 22px 14px;
+  gap: 16px;
+  padding: 16px 18px 12px;
   border-bottom: 1px solid var(--line);
   background: linear-gradient(180deg, var(--surface-raised), transparent);
   animation: fade-up .3s var(--ease-out) .04s both;
@@ -1199,14 +1207,14 @@
 
 .dialog-header h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
 
 .task-dialog form,
 .sync-section {
-  padding: 18px 22px 22px;
+  padding: 14px 18px 16px;
 }
 
 .field-delay-1 { animation: fade-up .34s var(--ease-out) .06s both; }
@@ -1224,12 +1232,12 @@
 }
 
 .full-field {
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .field {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
@@ -1239,17 +1247,16 @@
 .field select,
 .field textarea {
   width: 100%;
-  min-height: 42px;
-  padding: 8px 12px;
+  min-height: 40px;
+  padding: 7px 11px;
   border: 1px solid var(--line-strong);
-  border-radius: 14px;
+  border-radius: 12px;
   outline: 0;
   color: var(--ink);
   background: var(--panel);
   font-size: 14px;
   font-weight: 600;
-  transition: border-color 160ms var(--ease-out), box-shadow 160ms var(--ease-out),
-    transform 160ms var(--ease-out);
+  transition: border-color 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
 }
 
 .field select {
@@ -1272,7 +1279,6 @@
 .field textarea:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 4px var(--focus-ring);
-  transform: translateY(-1px);
 }
 
 .field input:disabled {
@@ -1283,20 +1289,20 @@
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-top: 16px;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 .mode-switch {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  padding: 4px;
+  padding: 3px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--line) 70%, var(--primary-soft));
 }
 
 .mode-switch button {
-  min-height: 38px;
+  min-height: 36px;
   justify-content: center;
   gap: 7px;
   border: 1px solid transparent;
@@ -1322,14 +1328,25 @@
   transform: scale(.95);
 }
 
+.check-rows {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 10px;
+  margin-top: 8px;
+}
+
+.check-rows:has(.check-row:only-child) {
+  grid-template-columns: 1fr;
+}
+
 .check-row {
   display: flex;
-  min-height: 34px;
+  min-height: 32px;
   align-items: center;
   gap: 8px;
-  margin-top: 9px;
-  padding: 4px 6px;
-  border-radius: 12px;
+  margin-top: 0;
+  padding: 2px 4px;
+  border-radius: 10px;
   color: var(--muted);
   font-size: 13px;
   font-weight: 600;
@@ -1383,9 +1400,26 @@
 .dialog-actions {
   display: flex;
   gap: 8px;
-  margin-top: 20px;
-  padding-top: 16px;
+  margin-top: 12px;
+  padding-top: 12px;
   border-top: 1px solid var(--line);
+}
+
+.delete-confirm {
+  padding: 18px 18px 16px;
+  animation: fade-up .28s var(--ease-out) both;
+}
+
+.delete-confirm p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.delete-confirm .dialog-actions {
+  margin-top: 18px;
 }
 
 .dialog-actions .button {
@@ -1685,6 +1719,14 @@ button:focus-visible {
     height: 40px;
   }
 
+  .gantt-canvas.is-month .gantt-header {
+    height: 26px;
+  }
+
+  .gantt-canvas.is-month .period-row {
+    height: 26px;
+  }
+
   .year-row {
     height: 16px;
   }
@@ -1810,43 +1852,47 @@ button:focus-visible {
     top: 0;
     z-index: 2;
     gap: 12px;
-    padding: 14px 16px 12px;
+    padding: 12px 14px 10px;
     background: var(--panel);
   }
 
   .dialog-header h2 {
-    font-size: 17px;
+    font-size: 16px;
   }
 
   .task-dialog form,
   .sync-section,
   .account-row {
-    padding: 14px 16px calc(16px + env(safe-area-inset-bottom));
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
   }
 
   .field input,
   .field select,
   .field textarea {
-    min-height: 44px;
+    min-height: 42px;
     font-size: 16px;
   }
 
   .form-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .check-rows {
+    grid-template-columns: 1fr 1fr;
   }
 
   .mode-switch button {
-    min-height: 42px;
+    min-height: 40px;
   }
 
   .dialog-actions {
     gap: 8px;
-    margin-top: 16px;
+    margin-top: 12px;
   }
 
   .dialog-actions .button {
-    min-height: 44px;
+    min-height: 42px;
   }
 
   .account-row {

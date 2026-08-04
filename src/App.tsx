@@ -197,7 +197,7 @@ function App() {
         <div className="summary-copy">
           <p className="summary-kicker">{summary.kicker}</p>
           <h2>{summary.headline}</h2>
-          <p>{summary.detail}</p>
+          {summary.detail ? <p>{summary.detail}</p> : null}
         </div>
       </section>
 

@@ -1,26 +1,69 @@
 import { registerSW } from 'virtual:pwa-register'
 
 const UPDATE_INTERVAL_MS = 60 * 60 * 1000
+const ICON_CACHE_PATTERNS = [
+  /favicon\.svg/i,
+  /pwa-\d+x\d+\.svg/i,
+  /icons\.svg/i,
+  /manifest\.webmanifest/i,
+]
+
+async function clearIconCaches(): Promise<void> {
+  if (!('caches' in window)) return
+  try {
+    const keys = await caches.keys()
+    await Promise.all(
+      keys.map(async (key) => {
+        const cache = await caches.open(key)
+        const requests = await cache.keys()
+        await Promise.all(
+          requests.map(async (request) => {
+            if (ICON_CACHE_PATTERNS.some((pattern) => pattern.test(request.url))) {
+              await cache.delete(request)
+            }
+          }),
+        )
+      }),
+    )
+  } catch {
+    // Cache cleanup is best-effort; outdated icons should not block the app.
+  }
+}
 
 export function registerPwaUpdates(): () => void {
   let disposeChecks = () => undefined
   let disposed = false
 
-  registerSW({
+  const updateSW = registerSW({
     immediate: true,
+    onNeedRefresh() {
+      void clearIconCaches().finally(() => {
+        void updateSW(true)
+      })
+    },
+    onOfflineReady() {
+      void clearIconCaches()
+    },
     onRegisteredSW(_swUrl, registration) {
       if (!registration || disposed) return
 
       disposeChecks()
+      void clearIconCaches()
 
       const checkForUpdate = () => {
         if (!navigator.onLine) return
         void registration.update().catch(() => undefined)
       }
       const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible') checkForUpdate()
+        if (document.visibilityState === 'visible') {
+          void clearIconCaches()
+          checkForUpdate()
+        }
       }
-      const handleOnline = () => checkForUpdate()
+      const handleOnline = () => {
+        void clearIconCaches()
+        checkForUpdate()
+      }
 
       document.addEventListener('visibilitychange', handleVisibilityChange)
       window.addEventListener('online', handleOnline)

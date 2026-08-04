@@ -5,6 +5,8 @@ import { VitePWA } from 'vite-plugin-pwa'
 const requestedBase = process.env.VITE_BASE_PATH ?? '/'
 const normalizedPath = requestedBase.replace(/^\/+|\/+$/g, '')
 const base = normalizedPath ? `/${normalizedPath}/` : '/'
+/** Bump when replacing app icons so clients drop stale SVG/manifest entries. */
+const ICON_CACHE_VERSION = '20260804b'
 
 export default defineConfig({
   base,
@@ -22,17 +24,17 @@ export default defineConfig({
         start_url: base,
         scope: base,
         display: 'standalone',
-        background_color: '#f3f6f8',
-        theme_color: '#356fb3',
+        background_color: '#f7ebe3',
+        theme_color: '#e08a55',
         icons: [
           {
-            src: `${base}pwa-192x192.svg`,
+            src: `${base}pwa-192x192.svg?v=${ICON_CACHE_VERSION}`,
             sizes: '192x192',
             type: 'image/svg+xml',
             purpose: 'any',
           },
           {
-            src: `${base}pwa-512x512.svg`,
+            src: `${base}pwa-512x512.svg?v=${ICON_CACHE_VERSION}`,
             sizes: '512x512',
             type: 'image/svg+xml',
             purpose: 'any maskable',
@@ -42,6 +44,23 @@ export default defineConfig({
       workbox: {
         cleanupOutdatedCaches: true,
         navigateFallback: `${base}index.html`,
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) =>
+              /favicon\.svg$|pwa-\d+x\d+\.svg$|icons\.svg$|manifest\.webmanifest$/i.test(
+                url.pathname,
+              ),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: `planning-icons-v${ICON_CACHE_VERSION}`,
+              expiration: {
+                maxEntries: 12,
+                maxAgeSeconds: 60 * 60 * 24,
+              },
+              networkTimeoutSeconds: 3,
+            },
+          },
+        ],
       },
     }),
   ],

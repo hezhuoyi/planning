@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Check, Flag, Save, Trash2, X } from 'lucide-react'
+import { TASK_CATEGORIES } from '../domain/categories'
 import { normalizeOwner, TASK_OWNERS, type TaskOwner } from '../domain/owners'
 import type { Task, TaskCategory, TaskType } from '../domain/types'
+import { useDialogMotion } from '../hooks/useDialogMotion'
 
 interface TaskDialogProps {
   task: Task | null
@@ -12,14 +14,6 @@ interface TaskDialogProps {
   onDelete: (id: string) => void
 }
 
-const categories: Array<{ value: TaskCategory; label: string }> = [
-  { value: 'health', label: '健康' },
-  { value: 'growth', label: '成长' },
-  { value: 'career', label: '事业' },
-  { value: 'home', label: '生活规划' },
-  { value: 'travel', label: '出行' },
-]
-
 function makeDraft(task: Task | null, initialDate: string, nextSortOrder: number): Task {
   const now = new Date().toISOString()
   return (
@@ -28,7 +22,7 @@ function makeDraft(task: Task | null, initialDate: string, nextSortOrder: number
       title: '',
       startDate: initialDate,
       endDate: initialDate,
-      owner: '共同',
+      owner: '一起',
       category: 'growth',
       type: 'range',
       isOngoing: false,
@@ -50,19 +44,13 @@ export function TaskDialog({
 }: TaskDialogProps) {
   const [draft, setDraft] = useState(() => makeDraft(task, initialDate, nextSortOrder))
   const [error, setError] = useState('')
+  const [shakeToken, setShakeToken] = useState(0)
+  const { leaving, requestClose } = useDialogMotion(onClose)
 
   useEffect(() => {
     setDraft(makeDraft(task, initialDate, nextSortOrder))
     setError('')
   }, [initialDate, nextSortOrder, task])
-
-  useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [onClose])
 
   const setType = (type: TaskType) => {
     setDraft((current) => ({
@@ -73,24 +61,29 @@ export function TaskDialog({
     }))
   }
 
+  const fail = (message: string) => {
+    setError(message)
+    setShakeToken((value) => value + 1)
+  }
+
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
     if (!draft.title.trim()) {
-      setError('请输入任务名称')
+      fail('请输入任务名称')
       return
     }
     if (draft.type === 'range' && !draft.isOngoing && !draft.endDate) {
-      setError('请设置结束日期')
+      fail('请设置结束日期')
       return
     }
     if (!draft.isOngoing && draft.endDate && draft.endDate < draft.startDate) {
-      setError('结束日期不能早于开始日期')
+      fail('结束日期不能早于开始日期')
       return
     }
 
     const owner = normalizeOwner(draft.owner)
     if (!owner) {
-      setError('请选择负责人')
+      fail('请选择负责人')
       return
     }
 
@@ -101,29 +94,39 @@ export function TaskDialog({
       endDate: draft.isOngoing ? null : draft.type === 'milestone' ? draft.startDate : draft.endDate,
       updatedAt: new Date().toISOString(),
     })
+    requestClose()
   }
 
   return (
-    <div className="dialog-backdrop" role="presentation" onMouseDown={onClose}>
+    <div
+      className={`dialog-backdrop ${leaving ? 'is-leaving' : ''}`}
+      role="presentation"
+      onMouseDown={requestClose}
+    >
       <dialog
         open
-        className="task-dialog"
+        className={`task-dialog ${leaving ? 'is-leaving' : ''}`}
         aria-labelledby="task-dialog-title"
         aria-modal="true"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <header className="dialog-header">
           <div>
-            <p className="eyebrow">事项</p>
-            <h2 id="task-dialog-title">{task ? '编辑事项' : '新增事项'}</h2>
+            <p className="eyebrow">小事一桩</p>
+            <h2 id="task-dialog-title">{task ? '改一改安排' : '记一件新事'}</h2>
           </div>
-          <button className="icon-button" type="button" onClick={onClose} aria-label="关闭">
+          <button
+            className="icon-button"
+            type="button"
+            onClick={requestClose}
+            aria-label="关闭"
+          >
             <X aria-hidden="true" />
           </button>
         </header>
 
-        <form onSubmit={submit}>
-          <label className="field full-field">
+        <form className={shakeToken ? 'is-shaking' : undefined} key={shakeToken} onSubmit={submit}>
+          <label className="field full-field field-delay-1">
             <span>任务名称</span>
             <input
               autoFocus
@@ -133,14 +136,14 @@ export function TaskDialog({
             />
           </label>
 
-          <div className="mode-switch" aria-label="事项类型">
+          <div className="mode-switch field-delay-2" aria-label="事项类型">
             <button
               type="button"
               className={draft.type === 'range' ? 'active' : ''}
               aria-pressed={draft.type === 'range'}
               onClick={() => setType('range')}
             >
-              <Flag size={15} aria-hidden="true" />持续事项
+              <Flag size={15} aria-hidden="true" />一段时间
             </button>
             <button
               type="button"
@@ -148,11 +151,11 @@ export function TaskDialog({
               aria-pressed={draft.type === 'milestone'}
               onClick={() => setType('milestone')}
             >
-              <Check size={15} aria-hidden="true" />单点事项
+              <Check size={15} aria-hidden="true" />某一天
             </button>
           </div>
 
-          <div className="form-grid">
+          <div className="form-grid field-delay-3">
             <label className="field">
               <span>开始日期</span>
               <input
@@ -205,7 +208,7 @@ export function TaskDialog({
                   setDraft({ ...draft, category: event.target.value as TaskCategory })
                 }
               >
-                {categories.map((category) => (
+                {TASK_CATEGORIES.map((category) => (
                   <option value={category.value} key={category.value}>
                     {category.label}
                   </option>
@@ -215,7 +218,7 @@ export function TaskDialog({
           </div>
 
           {draft.type === 'range' && (
-            <label className="check-row">
+            <label className="check-row field-delay-4">
               <input
                 type="checkbox"
                 checked={draft.isOngoing}
@@ -230,7 +233,7 @@ export function TaskDialog({
               <span>持续进行，暂不设置结束日期</span>
             </label>
           )}
-          <label className="check-row">
+          <label className="check-row field-delay-4">
             <input
               type="checkbox"
               checked={Boolean(draft.completedAt)}
@@ -246,20 +249,22 @@ export function TaskDialog({
 
           {error && <p className="form-error">{error}</p>}
 
-          <footer className="dialog-actions">
+          <footer className="dialog-actions field-delay-5">
             {task && (
               <button
                 className="button danger-button"
                 type="button"
                 onClick={() => {
-                  if (window.confirm(`删除“${task.title}”？`)) onDelete(task.id)
+                  if (window.confirm(`删除“${task.title}”？`)) {
+                    onDelete(task.id)
+                    requestClose()
+                  }
                 }}
               >
                 <Trash2 size={16} aria-hidden="true" />删除
               </button>
             )}
-            <span className="action-spacer" />
-            <button className="button" type="button" onClick={onClose}>
+            <button className="button" type="button" onClick={requestClose}>
               取消
             </button>
             <button className="button primary-button" type="submit">

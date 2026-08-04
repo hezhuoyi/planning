@@ -13,6 +13,8 @@ vi.mock('virtual:pwa-register', () => ({
 
 interface RegisterOptions {
   immediate?: boolean
+  onNeedRefresh?: () => void
+  onOfflineReady?: () => void
   onRegisteredSW?: (
     swUrl: string,
     registration: ServiceWorkerRegistration | undefined,
@@ -36,10 +38,21 @@ describe('registerPwaUpdates', () => {
     registerSWMock.mockReset()
     setOnline(true)
     setVisibility('visible')
+    vi.stubGlobal('caches', {
+      keys: vi.fn(async () => ['workbox-precache']),
+      open: vi.fn(async () => ({
+        keys: vi.fn(async () => [
+          { url: 'https://example.com/planning/favicon.svg' },
+          { url: 'https://example.com/planning/assets/app.js' },
+        ]),
+        delete: vi.fn(async () => true),
+      })),
+    })
   })
 
   afterEach(() => {
     vi.useRealTimers()
+    vi.unstubAllGlobals()
   })
 
   it('checks immediately, on foreground, online recovery, and every hour', () => {
@@ -83,5 +96,36 @@ describe('registerPwaUpdates', () => {
     window.dispatchEvent(new Event('online'))
     vi.advanceTimersByTime(60 * 60 * 1000)
     expect(update).toHaveBeenCalledTimes(4)
+  })
+
+  it('clears icon caches and applies waiting service worker on refresh', async () => {
+    const applyUpdate = vi.fn()
+    const deleteEntry = vi.fn(async () => true)
+    vi.stubGlobal('caches', {
+      keys: vi.fn(async () => ['workbox-precache']),
+      open: vi.fn(async () => ({
+        keys: vi.fn(async () => [
+          { url: 'https://example.com/planning/pwa-192x192.svg?v=1' },
+          { url: 'https://example.com/planning/assets/app.js' },
+        ]),
+        delete: deleteEntry,
+      })),
+    })
+
+    let options: RegisterOptions | undefined
+    registerSWMock.mockImplementation((next: RegisterOptions) => {
+      options = next
+      return applyUpdate
+    })
+
+    registerPwaUpdates()
+    options?.onNeedRefresh?.()
+
+    await vi.waitFor(() => {
+      expect(deleteEntry).toHaveBeenCalledWith({
+        url: 'https://example.com/planning/pwa-192x192.svg?v=1',
+      })
+      expect(applyUpdate).toHaveBeenCalledWith(true)
+    })
   })
 })

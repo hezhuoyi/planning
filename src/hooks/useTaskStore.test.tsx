@@ -537,6 +537,25 @@ describe('useTaskStore cloud synchronization', () => {
     expect(fake.operations.filter(({ kind }) => kind === 'select')).toHaveLength(3)
   })
 
+  it('keeps the board empty until the family passcode unlocks', async () => {
+    mocks.isFamilyUnlocked.mockReturnValue(false)
+    const fake = createFakeSupabase()
+    mocks.createSupabase.mockReturnValue(fake.client)
+    mocks.loadCachedTasks.mockResolvedValue({
+      tasks: [localTask],
+      pendingSync: false,
+      claimedBy: null,
+      remoteInitialized: false,
+    })
+    const { result } = renderHook(() => useTaskStore())
+
+    await waitFor(() => {
+      expect(result.current.unlocked).toBe(false)
+      expect(result.current.tasks).toEqual([])
+    })
+    expect(fake.operations).toHaveLength(0)
+  })
+
   it('does not sync until the family passcode unlocks', async () => {
     mocks.isFamilyUnlocked.mockReturnValue(false)
     const fake = createFakeSupabase()

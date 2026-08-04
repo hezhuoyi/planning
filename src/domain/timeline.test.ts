@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { getTaskPosition, getTaskStatus, getTimelineRange } from './timeline'
+import {
+  getTaskPosition,
+  getTaskProgress,
+  getTaskStatus,
+  getTimelineRange,
+  getFullTimelineRange,
+  getPlanSummary,
+} from './timeline'
 import type { Task } from './types'
 
 const baseTask: Task = {
@@ -43,9 +50,95 @@ describe('getTaskStatus', () => {
   })
 })
 
+describe('getTaskProgress', () => {
+  it('returns 0 before start, 100 when completed, and scales across the range', () => {
+    expect(getTaskProgress(baseTask, new Date(2026, 7, 5))).toBe(0)
+    expect(
+      getTaskProgress(
+        { ...baseTask, completedAt: '2026-08-12T00:00:00.000Z' },
+        new Date(2026, 7, 15),
+      ),
+    ).toBe(100)
+    expect(getTaskProgress(baseTask, new Date(2026, 7, 15))).toBe(55)
+  })
+})
+
+describe('getPlanSummary', () => {
+  it('defaults to a monthly headline for tasks overlapping this month', () => {
+    const summary = getPlanSummary(
+      [
+        baseTask,
+        {
+          ...baseTask,
+          id: 'done',
+          completedAt: '2026-08-01T00:00:00.000Z',
+        },
+        {
+          ...baseTask,
+          id: 'late',
+          endDate: '2026-08-01',
+        },
+      ],
+      new Date(2026, 7, 15),
+      'month',
+    )
+
+    expect(summary.kicker).toBe('本月速览')
+    expect(summary.total).toBe(3)
+    expect(summary.completed).toBe(1)
+    expect(summary.overdue).toBe(1)
+    expect(summary.headline).toContain('8月')
+  })
+
+  it('summarizes every task in the all scope', () => {
+    const summary = getPlanSummary(
+      [
+        baseTask,
+        {
+          ...baseTask,
+          id: 'future',
+          startDate: '2026-09-01',
+          endDate: '2026-09-10',
+        },
+      ],
+      new Date(2026, 7, 15),
+      'all',
+    )
+
+    expect(summary.kicker).toBe('全部计划')
+    expect(summary.total).toBe(2)
+    expect(summary.headline).toContain('一共 2 项')
+  })
+})
+
 describe('getTimelineRange', () => {
-  it('shows at least six months and adds a month after the latest task', () => {
+  it('limits the month scope to the selected calendar month', () => {
     const range = getTimelineRange(
+      [{ ...baseTask, startDate: '2026-05-01', endDate: '2027-02-10' }],
+      new Date(2026, 7, 15),
+      'month',
+      new Date(2026, 8, 1),
+    )
+
+    expect(range.start).toEqual(new Date(2026, 8, 1))
+    expect(range.end).toEqual(new Date(2026, 8, 30, 23, 59, 59, 999))
+  })
+
+  it('uses the full task span for the all scope', () => {
+    const range = getTimelineRange(
+      [{ ...baseTask, startDate: '2026-08-01', endDate: '2027-02-10' }],
+      new Date(2026, 7, 15),
+      'all',
+    )
+
+    expect(range.start).toEqual(new Date(2026, 7, 1))
+    expect(range.end).toEqual(new Date(2027, 2, 31, 23, 59, 59, 999))
+  })
+})
+
+describe('getFullTimelineRange', () => {
+  it('shows at least six months and adds a month after the latest task', () => {
+    const range = getFullTimelineRange(
       [{ ...baseTask, startDate: '2026-08-01', endDate: '2027-02-10' }],
       new Date(2026, 7, 3),
     )
@@ -55,7 +148,7 @@ describe('getTimelineRange', () => {
   })
 
   it('includes an earlier task instead of hard-coding the current month', () => {
-    const range = getTimelineRange(
+    const range = getFullTimelineRange(
       [{ ...baseTask, startDate: '2026-05-12' }],
       new Date(2026, 7, 3),
     )
@@ -88,5 +181,17 @@ describe('getTaskPosition', () => {
     )
 
     expect(position.left + position.width).toBeCloseTo(1, 4)
+  })
+
+  it('returns zero width when a task ends before the visible range', () => {
+    const position = getTaskPosition(
+      { ...baseTask, startDate: '2026-08-01', endDate: '2026-08-20' },
+      {
+        start: new Date(2026, 8, 1),
+        end: new Date(2026, 8, 30, 23, 59, 59, 999),
+      },
+    )
+
+    expect(position.width).toBe(0)
   })
 })

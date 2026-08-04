@@ -1,4 +1,4 @@
-export const TASK_OWNERS = ['王慧云', '何卓逸', '共同'] as const
+export const TASK_OWNERS = ['王慧云', '何卓逸', '一起'] as const
 
 export type TaskOwner = (typeof TASK_OWNERS)[number]
 
@@ -11,7 +11,8 @@ const OWNER_ALIASES: Record<string, TaskOwner> = {
   王慧云: '王慧云',
   何: '何卓逸',
   何卓逸: '何卓逸',
-  共同: '共同',
+  一起: '一起',
+  共同: '一起',
 }
 
 export function normalizeOwner(owner: string | null | undefined): TaskOwner | null {

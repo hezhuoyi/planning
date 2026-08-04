@@ -7,15 +7,27 @@ import {
   format,
   getDate,
   isWithinInterval,
+  max,
+  min,
+  startOfDay,
   startOfMonth,
 } from 'date-fns'
 import { Check } from 'lucide-react'
+import { CATEGORY_LABELS, TASK_CATEGORIES } from '../domain/categories'
 import { getOwnerGroup, OWNER_GROUPS, type OwnerGroup } from '../domain/owners'
-import { getTaskPosition, getTaskStatus, getTimelineRange } from '../domain/timeline'
+import {
+  getTaskPosition,
+  getTaskProgress,
+  getTaskStatus,
+  getTimelineRange,
+  type SummaryScope,
+} from '../domain/timeline'
 import type { Task, TaskStatus } from '../domain/types'
 
 interface GanttBoardProps {
   tasks: Task[]
+  viewScope: SummaryScope
+  viewMonth: Date
   focusTodayToken: number
   onEdit: (task: Task) => void
   onCreateAt: (date: string) => void
@@ -29,10 +41,10 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   completed: '已完成',
 }
 
-const PIXELS_PER_DAY_DESKTOP = 5.2
-const PIXELS_PER_DAY_MOBILE = 8
-const MIN_BOARD_WIDTH_DESKTOP = 760
-const MIN_BOARD_WIDTH_MOBILE = 480
+function getBarDensity(width: number): 'narrow' | 'normal' {
+  if (width > 0 && width < 0.22) return 'narrow'
+  return 'normal'
+}
 
 function useNarrowScreen() {
   const [narrow, setNarrow] = useState(() => {
@@ -52,60 +64,114 @@ function useNarrowScreen() {
   return narrow
 }
 
+function clipPercent(left: number, width: number) {
+  const start = Math.max(0, left)
+  const end = Math.min(100, left + width)
+  if (end <= start) return null
+  return { left: start, width: end - start }
+}
+
 export function GanttBoard({
   tasks,
+  viewScope,
+  viewMonth,
   focusTodayToken,
   onEdit,
   onCreateAt,
 }: GanttBoardProps) {
   const today = useMemo(() => new Date(), [])
   const narrow = useNarrowScreen()
-  const range = useMemo(() => getTimelineRange(tasks, today), [tasks, today])
+  const range = useMemo(
+    () => getTimelineRange(tasks, today, viewScope, viewMonth),
+    [tasks, today, viewMonth, viewScope],
+  )
   const months = useMemo(() => eachMonthOfInterval(range), [range])
   const totalDays = differenceInCalendarDays(range.end, range.start) + 1
-  const pixelsPerDay = narrow ? PIXELS_PER_DAY_MOBILE : PIXELS_PER_DAY_DESKTOP
-  const minBoardWidth = narrow ? MIN_BOARD_WIDTH_MOBILE : MIN_BOARD_WIDTH_DESKTOP
-  const boardWidth = Math.max(minBoardWidth, Math.round(totalDays * pixelsPerDay))
+  const pixelsPerDay = narrow
+    ? viewScope === 'month'
+      ? 13
+      : 5.5
+    : viewScope === 'month'
+      ? 22
+      : 5.2
+  const boardWidth = Math.max(
+    narrow ? 320 : 640,
+    Math.round(totalDays * pixelsPerDay),
+  )
   const scrollRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
+  const showYearRow = months.length > 1
 
   const dateToPercent = (date: Date) =>
-    (differenceInCalendarDays(date, range.start) / totalDays) * 100
+    (differenceInCalendarDays(startOfDay(date), startOfDay(range.start)) / totalDays) * 100
 
-  const monthBlocks = months.map((month) => {
-    const monthEnd = endOfMonth(month)
-    return {
-      key: format(month, 'yyyy-MM'),
-      label: `${format(month, 'M')}月`,
-      year: format(month, 'yyyy'),
-      left: dateToPercent(startOfMonth(month)),
-      width:
-        ((differenceInCalendarDays(monthEnd, startOfMonth(month)) + 1) / totalDays) * 100,
-      month,
-    }
-  })
+  const monthBlocks = months
+    .map((month) => {
+      const monthStart = max([startOfMonth(month), startOfDay(range.start)])
+      const monthEnd = min([endOfMonth(month), range.end])
+      const left = dateToPercent(monthStart)
+      const width =
+        ((differenceInCalendarDays(monthEnd, monthStart) + 1) / totalDays) * 100
+      const clipped = clipPercent(left, width)
+      if (!clipped) return null
+      return {
+        key: format(month, 'yyyy-MM'),
+        label: showYearRow
+          ? `${format(month, 'M')}月`
+          : `${format(month, 'yyyy年M月')}`,
+        year: format(month, 'yyyy'),
+        left: clipped.left,
+        width: clipped.width,
+        month,
+      }
+    })
+    .filter((block): block is NonNullable<typeof block> => Boolean(block))
 
   const yearBlocks = Array.from(new Set(monthBlocks.map((block) => block.year))).map((year) => {
     const blocks = monthBlocks.filter((block) => block.year === year)
+    const left = blocks[0].left
+    const right = blocks[blocks.length - 1].left + blocks[blocks.length - 1].width
     return {
       year,
-      left: blocks[0].left,
-      width: blocks.reduce((sum, block) => sum + block.width, 0),
+      left,
+      width: right - left,
     }
   })
 
   const periodBlocks = monthBlocks.flatMap((block) => {
     const lastDay = getDate(endOfMonth(block.month))
     return [
-      { label: '上', start: 1, length: 10 },
-      { label: '中', start: 11, length: 10 },
-      { label: '下', start: 21, length: lastDay - 20 },
-    ].map((period) => ({
-      key: `${block.key}-${period.label}`,
-      label: period.label,
-      left: dateToPercent(new Date(block.month.getFullYear(), block.month.getMonth(), period.start)),
-      width: (period.length / totalDays) * 100,
-    }))
+      { label: '上旬', start: 1, length: 10 },
+      { label: '中旬', start: 11, length: 10 },
+      { label: '下旬', start: 21, length: lastDay - 20 },
+    ]
+      .map((period) => {
+        const periodStart = new Date(
+          block.month.getFullYear(),
+          block.month.getMonth(),
+          period.start,
+        )
+        const periodEnd = new Date(
+          block.month.getFullYear(),
+          block.month.getMonth(),
+          period.start + period.length - 1,
+        )
+        const visibleStart = max([startOfDay(periodStart), startOfDay(range.start)])
+        const visibleEnd = min([startOfDay(periodEnd), startOfDay(range.end)])
+        if (visibleEnd < visibleStart) return null
+        const left = dateToPercent(visibleStart)
+        const width =
+          ((differenceInCalendarDays(visibleEnd, visibleStart) + 1) / totalDays) * 100
+        const clipped = clipPercent(left, width)
+        if (!clipped) return null
+        return {
+          key: `${block.key}-${period.label}`,
+          label: period.label,
+          left: clipped.left,
+          width: clipped.width,
+        }
+      })
+      .filter((item): item is NonNullable<typeof item> => Boolean(item))
   })
 
   const todayVisible = isWithinInterval(today, range)
@@ -123,6 +189,11 @@ export function GanttBoard({
     })).filter((group) => group.tasks.length > 0)
   }, [tasks])
 
+  const activeCategories = useMemo(() => {
+    const used = new Set(tasks.map((task) => task.category))
+    return TASK_CATEGORIES.filter((category) => used.has(category.value))
+  }, [tasks])
+
   const createFromPointer = (event: React.MouseEvent<HTMLElement>) => {
     const bounds = event.currentTarget.getBoundingClientRect()
     const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width))
@@ -134,30 +205,55 @@ export function GanttBoard({
     requestAnimationFrame(() => {
       const viewport = scrollRef.current
       const canvas = canvasRef.current
-      if (!viewport || !canvas) return
+      if (!viewport || !canvas || typeof viewport.scrollTo !== 'function') return
       viewport.scrollTo({
-        left: Math.max(0, (todayLeft / 100) * canvas.getBoundingClientRect().width - viewport.clientWidth / 2),
+        left: Math.max(
+          0,
+          (todayLeft / 100) * canvas.getBoundingClientRect().width - viewport.clientWidth / 2,
+        ),
         behavior: 'smooth',
       })
     })
   }, [boardWidth, focusTodayToken, todayLeft, todayVisible])
 
+  useEffect(() => {
+    if (focusTodayToken) return
+    requestAnimationFrame(() => {
+      const viewport = scrollRef.current
+      const canvas = canvasRef.current
+      if (!viewport || !canvas || !todayVisible || typeof viewport.scrollTo !== 'function') return
+      viewport.scrollTo({
+        left: Math.max(
+          0,
+          (todayLeft / 100) * canvas.getBoundingClientRect().width - viewport.clientWidth / 3,
+        ),
+        behavior: 'auto',
+      })
+    })
+  }, [boardWidth, focusTodayToken, todayLeft, todayVisible, viewScope])
+
   return (
     <section className="gantt-shell" aria-label="家庭计划">
       <div className="gantt-scroll" ref={scrollRef}>
-        <div ref={canvasRef} className="gantt-canvas zoom-period" style={{ width: boardWidth }}>
+        <div
+          ref={canvasRef}
+          className={`gantt-canvas zoom-period ${showYearRow ? '' : 'header-compact'}`.trim()}
+          style={{ width: boardWidth }}
+        >
           <div className="gantt-header">
-            <div className="year-row">
-              {yearBlocks.map((block) => (
-                <div
-                  className="header-block year-block"
-                  key={block.year}
-                  style={{ left: `${block.left}%`, width: `${block.width}%` }}
-                >
-                  {block.year}年
-                </div>
-              ))}
-            </div>
+            {showYearRow && (
+              <div className="year-row">
+                {yearBlocks.map((block) => (
+                  <div
+                    className="header-block year-block"
+                    key={block.year}
+                    style={{ left: `${block.left}%`, width: `${block.width}%` }}
+                  >
+                    {block.year}年
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="month-row">
               {monthBlocks.map((block) => (
                 <div
@@ -205,34 +301,67 @@ export function GanttBoard({
               </div>
             )}
 
-            {groupedTasks.map((group) => (
+            {groupedTasks.map((group) => {
+              const visibleTasks = group.tasks.filter((task) => {
+                const position = getTaskPosition(task, range)
+                return (
+                  position.width > 0 &&
+                  position.left < 1 &&
+                  position.left + position.width > 0
+                )
+              })
+              if (visibleTasks.length === 0) return null
+              return (
               <div className="owner-group" key={group.owner}>
                 <div className="owner-group-label" aria-label={`负责人 ${group.owner}`}>
                   <span>{group.owner}</span>
                 </div>
-                {group.tasks.map((task) => {
+                {visibleTasks.map((task) => {
                   const position = getTaskPosition(task, range)
                   const status = getTaskStatus(task, today)
+                  const progress = getTaskProgress(task, today)
+                  const categoryLabel = CATEGORY_LABELS[task.category]
+                  const density =
+                    task.type === 'milestone' ? 'normal' : getBarDensity(position.width)
                   return (
                     <div className="gantt-lane" key={task.id} onDoubleClick={createFromPointer}>
                       <button
                         type="button"
-                        className={`task-mark category-${task.category} status-${status} ${task.type}`}
+                        className={`task-mark category-${task.category} status-${status} ${task.type}${
+                          density === 'narrow' ? ' is-narrow' : ''
+                        }`}
                         style={{
                           left: `${position.left * 100}%`,
-                          width: task.type === 'milestone' ? undefined : `${position.width * 100}%`,
+                          width:
+                            task.type === 'milestone' ? undefined : `${position.width * 100}%`,
                         }}
-                        aria-label={`编辑 ${task.title}，${STATUS_LABELS[status]}`}
+                        title={task.title}
+                        aria-label={`编辑 ${task.title}，${categoryLabel}，${STATUS_LABELS[status]}，进度 ${progress}%`}
                         onClick={() => onEdit(task)}
                       >
+                        {task.type !== 'milestone' && (
+                          <span
+                            className="task-progress"
+                            style={{ width: `${progress}%` }}
+                            aria-hidden="true"
+                          />
+                        )}
                         {status === 'completed' && <Check size={14} aria-hidden="true" />}
                         {task.type === 'milestone' ? (
                           <span className="milestone-label">
                             <span>{task.title}</span>
+                            <small>
+                              {categoryLabel} · {STATUS_LABELS[status]}
+                            </small>
                           </span>
                         ) : (
                           <span className="task-label">
-                            <span>{task.title}</span>
+                            <span className="task-title">{task.title}</span>
+                            <small className="task-meta">
+                              <span>{categoryLabel}</span>
+                              <span>{STATUS_LABELS[status]}</span>
+                              <span>{progress}%</span>
+                            </small>
                           </span>
                         )}
                         {task.isOngoing && <span className="ongoing-edge" aria-hidden="true" />}
@@ -241,7 +370,8 @@ export function GanttBoard({
                   )
                 })}
               </div>
-            ))}
+              )
+            })}
 
             <button
               className="quick-lane"
@@ -252,6 +382,19 @@ export function GanttBoard({
           </div>
         </div>
       </div>
+
+      {activeCategories.length > 0 && (
+        <div className="status-legend" aria-label="分类图例">
+          {activeCategories.map((category) => (
+            <span key={category.value}>
+              <i className={`legend-dot category-${category.value}`} />
+              {category.label}
+            </span>
+          ))}
+          <span className="footer-spacer" />
+          <span>颜色按分类 · 进度在条上</span>
+        </div>
+      )}
     </section>
   )
 }

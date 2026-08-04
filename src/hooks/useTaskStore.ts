@@ -42,15 +42,16 @@ function createInitialCache(userId: string | null): TaskCacheState {
 export function useTaskStore() {
   const config = useMemo(() => getSupabaseConfig(), [])
   const supabase = useMemo(() => createSupabase(config), [config])
-  const [tasks, setTasks] = useState<Task[]>(seedTasks)
-  const [unlocked, setUnlocked] = useState(() => Boolean(config) && isFamilyUnlocked())
+  const initiallyUnlocked = Boolean(config) && isFamilyUnlocked()
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [unlocked, setUnlocked] = useState(() => initiallyUnlocked)
   const [cacheOwner, setCacheOwner] = useState<string | null | undefined>(undefined)
   const [syncState, setSyncState] = useState<SyncState>(
-    config && isFamilyUnlocked() ? 'connecting' : 'local',
+    initiallyUnlocked ? 'connecting' : 'local',
   )
   const [syncError, setSyncError] = useState<string | null>(null)
 
-  const tasksRef = useRef<Task[]>(seedTasks)
+  const tasksRef = useRef<Task[]>([])
   const localRevisionRef = useRef(0)
   const pendingSyncRef = useRef(false)
   const remoteInitializedRef = useRef(false)
@@ -130,15 +131,24 @@ export function useTaskStore() {
       if (hydrationTokenRef.current !== hydrationToken) return
 
       if (localRevisionRef.current === startingRevision) {
-        const nextCache = cached ?? createInitialCache(owner)
-        const migrated = migrateTaskOwners(nextCache.tasks)
-        const ownersChanged = migrated !== nextCache.tasks
-        tasksRef.current = sortTasks(migrated)
-        pendingSyncRef.current = nextCache.pendingSync === true || ownersChanged
-        remoteInitializedRef.current = nextCache.remoteInitialized === true
-        localRevisionRef.current += 1
-        setTasks(tasksRef.current)
-        if (ownersChanged) persistCurrent()
+        // 未解锁：不展示本地/示例数据，避免没输口令也能看到计划。
+        if (!owner) {
+          tasksRef.current = []
+          pendingSyncRef.current = false
+          remoteInitializedRef.current = false
+          localRevisionRef.current += 1
+          setTasks([])
+        } else {
+          const nextCache = cached ?? createInitialCache(owner)
+          const migrated = migrateTaskOwners(nextCache.tasks)
+          const ownersChanged = migrated !== nextCache.tasks
+          tasksRef.current = sortTasks(migrated)
+          pendingSyncRef.current = nextCache.pendingSync === true || ownersChanged
+          remoteInitializedRef.current = nextCache.remoteInitialized === true
+          localRevisionRef.current += 1
+          setTasks(tasksRef.current)
+          if (ownersChanged || !cached) persistCurrent()
+        }
       } else {
         persistCurrent()
       }
@@ -393,6 +403,11 @@ export function useTaskStore() {
     setUnlocked(false)
     setSyncError(null)
     setSyncState('local')
+    tasksRef.current = []
+    pendingSyncRef.current = false
+    remoteInitializedRef.current = false
+    localRevisionRef.current += 1
+    setTasks([])
   }, [])
 
   return {

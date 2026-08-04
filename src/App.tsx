@@ -14,7 +14,7 @@ import './App.css'
 import { GanttBoard } from './components/GanttBoard'
 import { SyncDialog } from './components/SyncDialog'
 import { TaskDialog } from './components/TaskDialog'
-import { getPlanSummary, type SummaryScope } from './domain/timeline'
+import { getPlanSummary, getTimelineRange, type SummaryScope } from './domain/timeline'
 import type { Task } from './domain/types'
 import { useTaskStore, type SyncState } from './hooks/useTaskStore'
 import { useTheme } from './hooks/useTheme'
@@ -25,6 +25,17 @@ const SYNC_LABELS: Record<SyncState, string> = {
   synced: '已同步',
   offline: '离线',
   error: '同步异常',
+}
+
+function formatAllRangeLabel(start: Date, end: Date) {
+  const sameYear = start.getFullYear() === end.getFullYear()
+  if (sameYear && start.getMonth() === end.getMonth()) {
+    return format(start, 'yyyy年M月')
+  }
+  if (sameYear) {
+    return `${format(start, 'yyyy年M月')}–${format(end, 'M月')}`
+  }
+  return `${format(start, 'yyyy年M月')}–${format(end, 'yyyy年M月')}`
 }
 
 function App() {
@@ -58,6 +69,10 @@ function App() {
     () => getPlanSummary(tasks, today, viewScope, viewAnchor),
     [tasks, today, viewAnchor, viewScope],
   )
+  const allRangeLabel = useMemo(() => {
+    const range = getTimelineRange(tasks, today, 'all')
+    return formatAllRangeLabel(range.start, range.end)
+  }, [tasks, today])
 
   const showToast = (message: string) => {
     setToast(message)
@@ -240,6 +255,14 @@ function App() {
               >
                 <ChevronRight size={16} aria-hidden="true" />
               </button>
+            </div>
+          )}
+
+          {viewScope === 'all' && (
+            <div className="month-nav is-readonly" aria-label="整体时间范围">
+              <span className="month-nav-spacer" aria-hidden="true" />
+              <strong>{allRangeLabel}</strong>
+              <span className="month-nav-spacer" aria-hidden="true" />
             </div>
           )}
         </div>

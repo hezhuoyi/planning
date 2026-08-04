@@ -115,7 +115,9 @@ export function GanttBoard({
   onEdit,
   onCreateAt,
 }: GanttBoardProps) {
-  const today = useMemo(() => new Date(), [])
+  const now = new Date()
+  const todayKey = format(now, 'yyyy-MM-dd')
+  const today = useMemo(() => startOfDay(now), [todayKey])
   const narrow = useNarrowScreen()
   const range = useMemo(
     () => getTimelineRange(tasks, today, viewScope, viewMonth),
@@ -138,7 +140,6 @@ export function GanttBoard({
     : Math.max(narrow ? 320 : 640, Math.round(totalDays * pixelsPerDay))
   const scrollRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
-  const showYearRow = months.length > 1
 
   const dateToPercent = (date: Date) =>
     (differenceInCalendarDays(startOfDay(date), startOfDay(range.start)) / totalDays) * 100
@@ -154,9 +155,7 @@ export function GanttBoard({
       if (!clipped) return null
       return {
         key: format(month, 'yyyy-MM'),
-        label: showYearRow
-          ? `${format(month, 'M')}月`
-          : `${format(month, 'yyyy年M月')}`,
+        label: `${format(month, 'M')}月`,
         year: format(month, 'yyyy'),
         left: clipped.left,
         width: clipped.width,
@@ -242,8 +241,10 @@ export function GanttBoard({
 
   const periodGuides = periodBlocks.filter((block) => block.left > 0.4)
 
-  const todayVisible = isWithinInterval(today, range)
-  const todayLeft = dateToPercent(today)
+  const todayVisible = isWithinInterval(now, range)
+  const msIntoDay = now.getTime() - today.getTime()
+  const dayProgress = Math.min(1, Math.max(0, msIntoDay / 86_400_000))
+  const todayLeft = dateToPercent(today) + (dayProgress * 100) / totalDays
 
   const groupedTasks = useMemo(() => {
     const groups = new Map<OwnerGroup, Task[]>()
@@ -318,33 +319,39 @@ export function GanttBoard({
     })
   }, [boardWidth, focusTodayToken, todayLeft, todayVisible, viewScope])
 
+  const canvasClassName = [
+    'gantt-canvas',
+    'zoom-period',
+    fitFixed ? 'is-fit' : '',
+    fitMonth ? 'is-month' : '',
+    fitWeek ? 'is-week' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
   return (
     <section className="gantt-shell" aria-label="家庭计划">
       <div
-        className={`gantt-scroll${fitFixed ? ' is-month' : ''}`}
+        className={`gantt-scroll${fitFixed ? ' is-fit' : ''}`}
         ref={scrollRef}
       >
         <div
           ref={canvasRef}
-          className={`gantt-canvas zoom-period${showYearRow ? '' : ' header-compact'}${
-            fitFixed ? ' is-month' : ''
-          }${fitWeek ? ' is-week' : ''}`}
+          className={canvasClassName}
           style={boardWidth ? { width: boardWidth } : undefined}
         >
           <div className="gantt-header">
-            {showYearRow && (
-              <div className="year-row">
-                {yearBlocks.map((block) => (
-                  <div
-                    className="header-block year-block"
-                    key={block.year}
-                    style={{ left: `${block.left}%`, width: `${block.width}%` }}
-                  >
-                    {block.year}年
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="year-row">
+              {yearBlocks.map((block) => (
+                <div
+                  className="header-block year-block"
+                  key={block.year}
+                  style={{ left: `${block.left}%`, width: `${block.width}%` }}
+                >
+                  {block.year}年
+                </div>
+              ))}
+            </div>
             {!fitFixed && (
               <div className="month-row">
                 {monthBlocks.map((block) => (
@@ -358,26 +365,30 @@ export function GanttBoard({
                 ))}
               </div>
             )}
-            <div className="period-row">
+            <div
+              className="period-row"
+              style={
+                fitWeek
+                  ? { ['--period-cols' as string]: 7 }
+                  : fitMonth
+                    ? { ['--period-cols' as string]: 3 }
+                    : undefined
+              }
+            >
               {periodBlocks.map((block) => (
                 <div
                   className="header-block period-block"
                   key={block.key}
-                  style={{ left: `${block.left}%`, width: `${block.width}%` }}
+                  style={
+                    fitFixed
+                      ? undefined
+                      : { left: `${block.left}%`, width: `${block.width}%` }
+                  }
                 >
                   {block.label}
                 </div>
               ))}
             </div>
-            {todayVisible && (
-              <div
-                className="today-header-mark"
-                style={{ left: `${todayLeft}%` }}
-                aria-hidden="true"
-              >
-                <i className="today-dot" />
-              </div>
-            )}
           </div>
 
           <div className="gantt-body is-motion" key={boardMotionKey}>
@@ -389,13 +400,14 @@ export function GanttBoard({
                   style={{ left: `${block.left}%` }}
                 />
               ))}
-              {monthBlocks.map((block) => (
-                <i
-                  className="guide-line month-guide"
-                  key={`month-${block.key}`}
-                  style={{ left: `${block.left}%` }}
-                />
-              ))}
+              {!fitFixed &&
+                monthBlocks.map((block) => (
+                  <i
+                    className="guide-line month-guide"
+                    key={`month-${block.key}`}
+                    style={{ left: `${block.left}%` }}
+                  />
+                ))}
             </div>
             {todayVisible && (
               <div className="today-line" style={{ left: `${todayLeft}%` }} aria-hidden="true" />

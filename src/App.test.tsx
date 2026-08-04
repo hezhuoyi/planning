@@ -28,6 +28,7 @@ describe('Planning', () => {
 
     expect(screen.getByRole('tab', { name: '全部' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText('全部计划')).toBeInTheDocument()
+    expect(screen.getByLabelText('整体时间范围')).toBeInTheDocument()
   })
 
   it('can move the month view to the next month', async () => {

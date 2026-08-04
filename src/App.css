@@ -139,16 +139,6 @@
   }
 }
 
-@keyframes today-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 35%, transparent);
-  }
-  70% {
-    box-shadow: 0 0 0 6px color-mix(in srgb, var(--primary) 0%, transparent);
-  }
-}
-
 @keyframes ripple {
   from {
     opacity: .55;
@@ -516,7 +506,6 @@
 }
 
 .gantt-canvas.is-week .period-block {
-  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0;
 }
@@ -527,6 +516,16 @@
   border: 0;
   border-radius: 999px;
   background: transparent;
+}
+
+.month-nav-spacer {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.month-nav.is-readonly strong {
+  min-width: 9em;
 }
 
 .summary-copy {
@@ -697,7 +696,7 @@
   touch-action: pan-x pan-y;
 }
 
-.gantt-scroll.is-month {
+.gantt-scroll.is-fit {
   overflow-x: hidden;
   touch-action: pan-y;
 }
@@ -708,7 +707,7 @@
   user-select: none;
 }
 
-.gantt-canvas.is-month {
+.gantt-canvas.is-fit {
   width: 100%;
 }
 
@@ -722,15 +721,13 @@
   background: var(--header-gradient);
 }
 
-.gantt-canvas.header-compact .gantt-header {
-  height: 44px;
+.gantt-canvas.is-month .gantt-header,
+.gantt-canvas.is-week .gantt-header {
+  height: 46px;
 }
 
-.gantt-canvas.is-month .gantt-header {
-  height: 28px;
-}
-
-.gantt-canvas.is-month .period-row {
+.gantt-canvas.is-month .period-row,
+.gantt-canvas.is-week .period-row {
   height: 28px;
 }
 
@@ -755,9 +752,9 @@
   height: 18px;
 }
 
-.gantt-canvas.header-compact .month-row,
-.gantt-canvas.header-compact .period-row {
-  height: 22px;
+.gantt-canvas.is-fit .period-row {
+  display: grid;
+  grid-template-columns: repeat(var(--period-cols, 3), minmax(0, 1fr));
 }
 
 .header-block {
@@ -766,8 +763,24 @@
   display: grid;
   place-items: center;
   overflow: hidden;
-  border-right: 1px solid var(--line);
   white-space: nowrap;
+}
+
+.gantt-canvas.is-fit .period-block {
+  position: relative;
+  inset: auto;
+  min-width: 0;
+}
+
+.gantt-canvas:not(.is-fit) .header-block:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--line);
+  pointer-events: none;
 }
 
 .year-block {
@@ -792,6 +805,7 @@
 
 .gantt-body {
   position: relative;
+  display: flow-root;
   background: var(--panel);
 }
 
@@ -817,32 +831,11 @@
   background: var(--line-strong);
 }
 
-.today-header-mark {
-  position: absolute;
-  z-index: 8;
-  top: 0;
-  bottom: 0;
-  width: 0;
-  pointer-events: none;
-}
-
-.today-dot {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
-  transform: translate(-50%, -50%);
-  animation: today-pulse 2.4s var(--ease-out) infinite;
-}
-
 .today-line {
-  z-index: 0;
+  z-index: 1;
   width: 2px;
   background: var(--primary);
+  transform: translateX(-50%);
   pointer-events: none;
 }
 
@@ -910,6 +903,7 @@
 
 .owner-group {
   position: relative;
+  padding-top: 6px;
   border-bottom: 1px solid color-mix(in srgb, var(--line-strong) 70%, transparent);
 }
 
@@ -947,7 +941,7 @@
   max-width: 136px;
   min-height: 28px;
   align-items: center;
-  margin: 6px 0 2px;
+  margin: 0 0 2px;
   padding: 4px 12px 4px 10px;
   border: 1px solid color-mix(in srgb, var(--owner-mark-color, var(--owner-label-color)) 18%, transparent);
   border-left: 0;
@@ -2101,15 +2095,13 @@ button:focus-visible {
     height: 48px;
   }
 
-  .gantt-canvas.header-compact .gantt-header {
-    height: 40px;
+  .gantt-canvas.is-month .gantt-header,
+  .gantt-canvas.is-week .gantt-header {
+    height: 42px;
   }
 
-  .gantt-canvas.is-month .gantt-header {
-    height: 26px;
-  }
-
-  .gantt-canvas.is-month .period-row {
+  .gantt-canvas.is-month .period-row,
+  .gantt-canvas.is-week .period-row {
     height: 26px;
   }
 
@@ -2120,11 +2112,6 @@ button:focus-visible {
   .month-row,
   .period-row {
     height: 16px;
-  }
-
-  .gantt-canvas.header-compact .month-row,
-  .gantt-canvas.header-compact .period-row {
-    height: 20px;
   }
 
   .header-block,

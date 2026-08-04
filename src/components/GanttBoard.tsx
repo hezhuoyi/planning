@@ -12,7 +12,7 @@ import {
   startOfDay,
   startOfMonth,
 } from 'date-fns'
-import { Check, Heart, Mars, Venus } from 'lucide-react'
+import { AlertTriangle, Briefcase, Check, Heart, HeartPulse, Home, Mars, Plane, Sprout, Venus } from 'lucide-react'
 import { CATEGORY_LABELS, TASK_CATEGORIES } from '../domain/categories'
 import { getOwnerGroup, getOwnerMarkKind, OWNER_GROUPS, type OwnerGroup, type OwnerMarkKind } from '../domain/owners'
 import { sortTasksForDisplay } from '../domain/taskSort'
@@ -24,7 +24,7 @@ import {
   getTimelineRange,
   type SummaryScope,
 } from '../domain/timeline'
-import type { Task, TaskStatus } from '../domain/types'
+import type { Task, TaskCategory, TaskStatus } from '../domain/types'
 
 interface GanttBoardProps {
   tasks: Task[]
@@ -91,6 +91,22 @@ function OwnerMarkIcon({ kind }: { kind: OwnerMarkKind }) {
   return <span className="owner-mark-dot" />
 }
 
+function CategoryIcon({ category }: { category: TaskCategory }) {
+  const props = { size: 12, strokeWidth: 2.4, 'aria-hidden': true as const }
+  switch (category) {
+    case 'health':
+      return <HeartPulse {...props} />
+    case 'growth':
+      return <Sprout {...props} />
+    case 'career':
+      return <Briefcase {...props} />
+    case 'home':
+      return <Home {...props} />
+    case 'travel':
+      return <Plane {...props} />
+  }
+}
+
 export function GanttBoard({
   tasks,
   viewScope,
@@ -108,14 +124,16 @@ export function GanttBoard({
   const months = useMemo(() => eachMonthOfInterval(range), [range])
   const totalDays = differenceInCalendarDays(range.end, range.start) + 1
   const pixelsPerDay = narrow
-    ? viewScope === 'month'
+    ? viewScope === 'month' || viewScope === 'week'
       ? 13
       : 5.5
-    : viewScope === 'month'
+    : viewScope === 'month' || viewScope === 'week'
       ? 22
       : 5.2
   const fitMonth = viewScope === 'month'
-  const boardWidth = fitMonth
+  const fitWeek = viewScope === 'week'
+  const fitFixed = fitMonth || fitWeek
+  const boardWidth = fitFixed
     ? undefined
     : Math.max(narrow ? 320 : 640, Math.round(totalDays * pixelsPerDay))
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -158,20 +176,33 @@ export function GanttBoard({
     }
   })
 
-  const periodBlocks = fitMonth
-    ? (
-        [
-          { label: '月初', index: 0 },
-          { label: '月中', index: 1 },
-          { label: '月末', index: 2 },
-        ] as const
-      ).map((period) => ({
-        key: period.label,
-        label: period.label,
-        left: (period.index * 100) / 3,
-        width: 100 / 3,
-        tick: false as const,
-      }))
+  const WEEKDAY_LABELS = ['一', '二', '三', '四', '五', '六', '日'] as const
+
+  const periodBlocks = fitWeek
+    ? WEEKDAY_LABELS.map((label, index) => {
+        const date = addDays(startOfDay(range.start), index)
+        return {
+          key: `week-${format(date, 'yyyy-MM-dd')}`,
+          label: `${format(date, 'd')} ${label}`,
+          left: (index * 100) / 7,
+          width: 100 / 7,
+          tick: false as const,
+        }
+      })
+    : fitMonth
+      ? (
+          [
+            { label: '月初', index: 0 },
+            { label: '月中', index: 1 },
+            { label: '月末', index: 2 },
+          ] as const
+        ).map((period) => ({
+          key: period.label,
+          label: period.label,
+          left: (period.index * 100) / 3,
+          width: 100 / 3,
+          tick: false as const,
+        }))
     : monthBlocks.flatMap((block) => {
         const lastDay = getDate(endOfMonth(block.month))
         return [
@@ -231,6 +262,24 @@ export function GanttBoard({
     return TASK_CATEGORIES.filter((category) => used.has(category.value))
   }, [tasks])
 
+  const boardMotionKey = `${viewScope}-${format(viewMonth, 'yyyy-MM-dd')}`
+
+  const visibleGroups = useMemo(() => {
+    return groupedTasks
+      .map((group) => ({
+        ...group,
+        tasks: group.tasks.filter((task) => {
+          const position = getTaskPosition(task, range)
+          return (
+            position.width > 0 &&
+            position.left < 1 &&
+            position.left + position.width > 0
+          )
+        }),
+      }))
+      .filter((group) => group.tasks.length > 0)
+  }, [groupedTasks, range])
+
   const createFromPointer = (event: React.MouseEvent<HTMLElement>) => {
     const bounds = event.currentTarget.getBoundingClientRect()
     const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width))
@@ -272,14 +321,14 @@ export function GanttBoard({
   return (
     <section className="gantt-shell" aria-label="家庭计划">
       <div
-        className={`gantt-scroll${fitMonth ? ' is-month' : ''}`}
+        className={`gantt-scroll${fitFixed ? ' is-month' : ''}`}
         ref={scrollRef}
       >
         <div
           ref={canvasRef}
           className={`gantt-canvas zoom-period${showYearRow ? '' : ' header-compact'}${
-            fitMonth ? ' is-month' : ''
-          }`}
+            fitFixed ? ' is-month' : ''
+          }${fitWeek ? ' is-week' : ''}`}
           style={boardWidth ? { width: boardWidth } : undefined}
         >
           <div className="gantt-header">
@@ -296,7 +345,7 @@ export function GanttBoard({
                 ))}
               </div>
             )}
-            {!fitMonth && (
+            {!fitFixed && (
               <div className="month-row">
                 {monthBlocks.map((block) => (
                   <div
@@ -320,9 +369,18 @@ export function GanttBoard({
                 </div>
               ))}
             </div>
+            {todayVisible && (
+              <div
+                className="today-header-mark"
+                style={{ left: `${todayLeft}%` }}
+                aria-hidden="true"
+              >
+                <i className="today-dot" />
+              </div>
+            )}
           </div>
 
-          <div className="gantt-body">
+          <div className="gantt-body is-motion" key={boardMotionKey}>
             <div className="timeline-guides" aria-hidden="true">
               {periodGuides.map((block) => (
                 <i
@@ -343,18 +401,41 @@ export function GanttBoard({
               <div className="today-line" style={{ left: `${todayLeft}%` }} aria-hidden="true" />
             )}
 
-            {groupedTasks.map((group) => {
-              const visibleTasks = group.tasks.filter((task) => {
-                const position = getTaskPosition(task, range)
-                return (
-                  position.width > 0 &&
-                  position.left < 1 &&
-                  position.left + position.width > 0
-                )
-              })
-              if (visibleTasks.length === 0) return null
+            {visibleGroups.length === 0 ? (
+              <div className="gantt-empty">
+                <div className="gantt-empty-art" aria-hidden="true">
+                  <span className="gantt-empty-bar is-a" />
+                  <span className="gantt-empty-bar is-b" />
+                  <span className="gantt-empty-bar is-c" />
+                </div>
+                <p className="gantt-empty-title">
+                  {viewScope === 'week'
+                    ? '这周还空着'
+                    : viewScope === 'month'
+                      ? '这个月还空着'
+                      : '还没有安排'}
+                </p>
+                <p className="gantt-empty-copy">双击时间轴，或点右上角「新增」记一件事</p>
+                <button
+                  className="button primary-button gantt-empty-action"
+                  type="button"
+                  onClick={() =>
+                    onCreateAt(
+                      format(
+                        viewScope === 'all' ? today : startOfDay(range.start),
+                        'yyyy-MM-dd',
+                      ),
+                    )
+                  }
+                >
+                  记一件事
+                </button>
+              </div>
+            ) : (
+              visibleGroups.map((group) => {
+              let stagger = 0
               return (
-              <div className="owner-group" key={group.owner}>
+              <div className="owner-group" data-owner={group.owner} key={group.owner}>
                 <div
                   className="owner-group-label"
                   data-owner={group.owner}
@@ -365,7 +446,7 @@ export function GanttBoard({
                   </span>
                   <span className="owner-name">{group.owner}</span>
                 </div>
-                {visibleTasks.map((task) => {
+                {group.tasks.map((task) => {
                   const position = getTaskPosition(task, range)
                   const clip = getTaskBarClip(task, range)
                   const status = getTaskStatus(task, today)
@@ -387,6 +468,8 @@ export function GanttBoard({
                   const clipClass = `${clip.clipStart ? ' clip-start' : ''}${
                     clip.clipEnd ? ' clip-end' : ''
                   }`
+                  const barDelay = Math.min(stagger, 14) * 42
+                  stagger += 1
                   return (
                     <div className="gantt-lane" key={task.id} onDoubleClick={createFromPointer}>
                       <button
@@ -396,6 +479,7 @@ export function GanttBoard({
                           left: `${position.left * 100}%`,
                           width:
                             task.type === 'milestone' ? undefined : `${position.width * 100}%`,
+                          ['--bar-delay' as string]: `${barDelay}ms`,
                         }}
                         title={task.title}
                         aria-label={`编辑 ${task.title}，${categoryLabel}，${STATUS_LABELS[status]}，进度 ${progress}%`}
@@ -408,20 +492,37 @@ export function GanttBoard({
                             aria-hidden="true"
                           />
                         )}
-                        {status === 'completed' && <Check size={14} aria-hidden="true" />}
+                        {status === 'completed' && (
+                          <span className="task-check" aria-hidden="true">
+                            <Check size={14} />
+                          </span>
+                        )}
+                        {status === 'overdue' && (
+                          <span className="task-overdue-flag" aria-hidden="true">
+                            <AlertTriangle size={12} strokeWidth={2.6} />
+                            <span>逾期</span>
+                          </span>
+                        )}
                         {task.type === 'milestone' ? (
                           <span className="milestone-label">
+                            <span className="task-cat-icon" aria-hidden="true">
+                              <CategoryIcon category={task.category} />
+                            </span>
                             <span>{task.title}</span>
                             <small>
-                              {categoryLabel} · {STATUS_LABELS[status]}
+                              {STATUS_LABELS[status]}
                             </small>
                           </span>
                         ) : (
                           <span className="task-label">
+                            <span className="task-cat-icon" aria-hidden="true">
+                              <CategoryIcon category={task.category} />
+                            </span>
                             <span className="task-title">{task.title}</span>
                             <small className="task-meta">
-                              <span className="task-meta-tag">{categoryLabel}</span>
-                              <span className="task-meta-tag">{STATUS_LABELS[status]}</span>
+                              {status !== 'overdue' && (
+                                <span className="task-meta-tag">{STATUS_LABELS[status]}</span>
+                              )}
                               <span className="task-pct">{progress}%</span>
                             </small>
                           </span>
@@ -433,7 +534,8 @@ export function GanttBoard({
                 })}
               </div>
               )
-            })}
+            })
+            )}
 
             <button
               className="quick-lane"
@@ -449,12 +551,14 @@ export function GanttBoard({
         <div className="status-legend" aria-label="分类图例">
           {activeCategories.map((category) => (
             <span key={category.value}>
-              <i className={`legend-dot category-${category.value}`} />
+              <i className={`legend-icon category-${category.value}`} aria-hidden="true">
+                <CategoryIcon category={category.value} />
+              </i>
               {category.label}
             </span>
           ))}
           <span className="footer-spacer" />
-          <span>颜色按分类 · 进度在条上</span>
+          <span>图标按分类 · 进度在条上</span>
         </div>
       )}
     </section>

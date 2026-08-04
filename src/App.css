@@ -119,13 +119,33 @@
 @keyframes bar-in {
   from {
     opacity: 0;
-    transform: scaleX(.86);
+    transform: translateY(6px) scaleX(.92);
     transform-origin: left center;
   }
   to {
     opacity: 1;
-    transform: scaleX(1);
+    transform: translateY(0) scaleX(1);
     transform-origin: left center;
+  }
+}
+
+@keyframes empty-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes today-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 35%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--primary) 0%, transparent);
   }
 }
 
@@ -495,6 +515,12 @@
   text-align: center;
 }
 
+.gantt-canvas.is-week .period-block {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
 .month-nav .icon-button {
   width: 28px;
   height: 28px;
@@ -521,6 +547,62 @@
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.3;
+}
+
+.summary-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+.summary-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.summary-stats li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--line) 55%, var(--panel));
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.summary-stats li i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.summary-stats li.is-progress {
+  color: color-mix(in srgb, var(--cat-growth) 70%, var(--ink));
+  background: color-mix(in srgb, var(--cat-growth) 14%, var(--panel));
+}
+
+.summary-stats li.is-upcoming {
+  color: color-mix(in srgb, var(--cat-career) 65%, var(--ink));
+  background: color-mix(in srgb, var(--cat-career) 12%, var(--panel));
+}
+
+.summary-stats li.is-overdue {
+  color: #fff;
+  background: color-mix(in srgb, var(--danger) 82%, #3a1014);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--danger) 35%, transparent);
+}
+
+.summary-stats li.is-done {
+  color: color-mix(in srgb, var(--muted) 80%, var(--ink));
+  background: color-mix(in srgb, var(--muted) 12%, var(--panel));
 }
 
 .summary-copy p:last-child {
@@ -735,6 +817,28 @@
   background: var(--line-strong);
 }
 
+.today-header-mark {
+  position: absolute;
+  z-index: 8;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  pointer-events: none;
+}
+
+.today-dot {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
+  transform: translate(-50%, -50%);
+  animation: today-pulse 2.4s var(--ease-out) infinite;
+}
+
 .today-line {
   z-index: 0;
   width: 2px;
@@ -742,9 +846,91 @@
   pointer-events: none;
 }
 
+.gantt-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 36px 20px 28px;
+  text-align: center;
+  animation: fade-up .4s var(--ease-out) both;
+}
+
+.gantt-empty-art {
+  display: grid;
+  gap: 8px;
+  width: min(220px, 70%);
+  margin-bottom: 6px;
+  animation: empty-bob 2.8s ease-in-out infinite;
+}
+
+.gantt-empty-bar {
+  display: block;
+  height: 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 22%, var(--line));
+  opacity: .85;
+}
+
+.gantt-empty-bar.is-a {
+  width: 72%;
+  justify-self: start;
+  background: color-mix(in srgb, var(--cat-growth) 35%, var(--line));
+}
+
+.gantt-empty-bar.is-b {
+  width: 92%;
+  justify-self: center;
+  background: color-mix(in srgb, var(--cat-home) 35%, var(--line));
+}
+
+.gantt-empty-bar.is-c {
+  width: 58%;
+  justify-self: end;
+  background: color-mix(in srgb, var(--cat-travel) 35%, var(--line));
+}
+
+.gantt-empty-title {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.gantt-empty-copy {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.gantt-empty-action {
+  margin-top: 6px;
+}
+
 .owner-group {
   position: relative;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid color-mix(in srgb, var(--line-strong) 70%, transparent);
+}
+
+.owner-group[data-owner='王慧云'] {
+  --owner-mark-bg: color-mix(in srgb, #f0b4c0 42%, var(--panel));
+  --owner-mark-color: #c45f78;
+}
+
+.owner-group[data-owner='何卓逸'] {
+  --owner-mark-bg: color-mix(in srgb, #9bb8d4 42%, var(--panel));
+  --owner-mark-color: #4d7194;
+}
+
+.owner-group[data-owner='一起'] {
+  --owner-mark-bg: color-mix(in srgb, #f0c08a 48%, var(--panel));
+  --owner-mark-color: #d07845;
+}
+
+.owner-group[data-owner='未指定'] {
+  --owner-mark-bg: color-mix(in srgb, var(--muted) 14%, var(--panel));
+  --owner-mark-color: var(--muted);
 }
 
 .owner-group:last-of-type {
@@ -761,14 +947,21 @@
   max-width: 136px;
   min-height: 28px;
   align-items: center;
-  padding: 4px 12px 4px 8px;
-  border-right: 1px solid var(--line);
+  margin: 6px 0 2px;
+  padding: 4px 12px 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--owner-mark-color, var(--owner-label-color)) 18%, transparent);
+  border-left: 0;
   border-radius: 0 999px 999px 0;
-  color: var(--owner-label-color);
+  color: var(--owner-mark-color, var(--owner-label-color));
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.02em;
-  background: var(--owner-label-bg);
+  background: color-mix(
+    in srgb,
+    var(--owner-mark-bg, var(--owner-label-bg)) 88%,
+    var(--panel)
+  );
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 6%, transparent);
 }
 
 .owner-mark {
@@ -793,26 +986,6 @@
   opacity: 0.7;
 }
 
-.owner-group-label[data-owner='王慧云'] {
-  --owner-mark-bg: color-mix(in srgb, #f0b4c0 42%, var(--panel));
-  --owner-mark-color: #c45f78;
-}
-
-.owner-group-label[data-owner='何卓逸'] {
-  --owner-mark-bg: color-mix(in srgb, #9bb8d4 42%, var(--panel));
-  --owner-mark-color: #4d7194;
-}
-
-.owner-group-label[data-owner='一起'] {
-  --owner-mark-bg: color-mix(in srgb, #f0c08a 48%, var(--panel));
-  --owner-mark-color: #d07845;
-}
-
-.owner-group-label[data-owner='未指定'] {
-  --owner-mark-bg: color-mix(in srgb, var(--muted) 14%, var(--panel));
-  --owner-mark-color: var(--muted);
-}
-
 .owner-name {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -831,7 +1004,7 @@
 }
 
 .gantt-lane:hover {
-  background: color-mix(in srgb, var(--primary) 6%, transparent);
+  background: color-mix(in srgb, var(--primary) 5%, transparent);
 }
 
 .task-mark {
@@ -849,13 +1022,24 @@
   border-radius: var(--bar-radius-start) var(--bar-radius-end) var(--bar-radius-end)
     var(--bar-radius-start);
   color: #fff;
-  background: color-mix(in srgb, var(--task-color) 78%, white);
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--task-color) 62%, white) 0%,
+    color-mix(in srgb, var(--task-color) 82%, white) 48%,
+    color-mix(in srgb, var(--task-color) 76%, #dfe7ef) 100%
+  );
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 28%);
   cursor: pointer;
   container-type: inline-size;
   container-name: taskbar;
-  animation: bar-in .38s var(--ease-out) both;
+  animation: none;
   transition: filter 140ms var(--ease-out), box-shadow 140ms var(--ease-out),
-    transform 140ms var(--ease-out);
+    transform 140ms var(--ease-out), background 280ms ease, opacity 280ms ease;
+}
+
+.gantt-body.is-motion .task-mark {
+  animation: bar-in .42s var(--ease-out) both;
+  animation-delay: var(--bar-delay, 0ms);
 }
 
 .task-mark.clip-start {
@@ -915,10 +1099,36 @@
   left: 0;
   z-index: 0;
   border-radius: inherit;
-  background: var(--task-color);
-  opacity: .92;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--task-color) 88%, white),
+    var(--task-color)
+  );
+  opacity: .94;
   pointer-events: none;
   transition: width 280ms ease;
+}
+
+.task-cat-icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: #fff;
+  background: rgb(255 255 255 / 22%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 18%);
+}
+
+.task-mark.is-tight .task-cat-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.task-mark.is-tight .task-cat-icon svg {
+  width: 10px;
+  height: 10px;
 }
 
 .task-mark.status-not_started {
@@ -926,17 +1136,105 @@
 }
 
 .task-mark.status-overdue {
-  box-shadow: inset 0 0 0 2px var(--danger);
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--danger) 34%, white) 0%,
+    color-mix(in srgb, var(--task-color) 58%, #f3c6cc) 55%,
+    color-mix(in srgb, var(--danger) 22%, var(--task-color)) 100%
+  );
+  box-shadow:
+    inset 3px 0 0 var(--danger),
+    inset 0 0 0 1.5px color-mix(in srgb, var(--danger) 50%, transparent);
+}
+
+.task-mark.status-overdue .task-progress {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--danger) 55%, white),
+    color-mix(in srgb, var(--danger) 75%, var(--task-color))
+  );
+}
+
+.task-overdue-flag {
+  position: absolute;
+  z-index: 2;
+  top: 7px;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: calc(100% - 16px);
+  padding: 2px 6px;
+  border-radius: 999px;
+  color: #fff;
+  background: color-mix(in srgb, var(--danger) 88%, #2c0d12);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  animation: check-pop .4s var(--ease-out) both;
+  pointer-events: none;
+}
+
+.task-mark.status-overdue .task-label {
+  left: 58px;
+  max-width: calc(100% - 68px);
+}
+
+.task-mark.status-overdue.is-tight .task-overdue-flag span,
+.task-mark.status-overdue.is-narrow .task-overdue-flag span {
+  display: none;
+}
+
+.task-mark.status-overdue.is-tight .task-label,
+.task-mark.status-overdue.is-narrow .task-label {
+  left: 30px;
+  max-width: calc(100% - 38px);
+}
+
+@container taskbar (max-width: 96px) {
+  .task-overdue-flag span {
+    display: none;
+  }
+
+  .task-mark.status-overdue .task-label {
+    left: 30px;
+    max-width: calc(100% - 38px);
+  }
 }
 
 .task-mark.status-completed {
   color: #fff;
   text-decoration: none;
+  opacity: .88;
 }
 
 .task-mark.status-completed .task-progress {
   width: 100% !important;
   background: color-mix(in srgb, var(--task-color) 55%, var(--muted));
+}
+
+.task-check {
+  position: absolute;
+  z-index: 2;
+  top: 8px;
+  left: 8px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: #fff;
+  background: rgb(255 255 255 / 28%);
+  animation: check-pop .42s var(--ease-out) both;
+}
+
+.task-check svg {
+  display: block;
+}
+
+.task-mark.status-completed .task-label {
+  left: 30px;
 }
 
 .task-label {
@@ -985,6 +1283,12 @@
   }
 }
 
+@container taskbar (max-width: 72px) {
+  .task-cat-icon {
+    display: none;
+  }
+}
+
 @container taskbar (max-width: 40px) {
   .task-pct {
     display: none;
@@ -1018,15 +1322,8 @@
   margin-left: 6px;
 }
 
-.task-mark > svg:first-of-type {
-  position: absolute;
-  z-index: 2;
-  top: 10px;
-  left: 8px;
-}
-
-.task-mark > svg:first-of-type + .task-label {
-  left: 28px;
+.task-mark.status-completed .task-label {
+  left: 30px;
 }
 
 .ongoing-edge {
@@ -1083,6 +1380,7 @@
   display: flex;
   min-width: max-content;
   align-items: center;
+  gap: 6px;
   color: var(--ink);
   font-size: 12px;
   font-weight: 700;
@@ -1090,7 +1388,14 @@
   white-space: nowrap;
 }
 
+.milestone-label .task-cat-icon {
+  color: var(--task-color);
+  background: color-mix(in srgb, var(--task-color) 16%, white);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--task-color) 18%, transparent);
+}
+
 .milestone-label small {
+  margin-left: 0;
   background: color-mix(in srgb, var(--task-color) 16%, white);
   color: color-mix(in srgb, var(--task-color) 70%, var(--ink));
 }
@@ -1127,18 +1432,38 @@
   white-space: nowrap;
 }
 
-.legend-dot {
+.legend-dot,
+.legend-icon {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--faint);
 }
 
-.legend-dot.category-health { background: var(--cat-health); }
-.legend-dot.category-growth { background: var(--cat-growth); }
-.legend-dot.category-career { background: var(--cat-career); }
-.legend-dot.category-home { background: var(--cat-home); }
-.legend-dot.category-travel { background: var(--cat-travel); }
+.legend-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  color: #fff;
+  vertical-align: -5px;
+}
+
+.legend-icon svg {
+  width: 11px;
+  height: 11px;
+}
+
+.legend-dot.category-health,
+.legend-icon.category-health { background: var(--cat-health); }
+.legend-dot.category-growth,
+.legend-icon.category-growth { background: var(--cat-growth); }
+.legend-dot.category-career,
+.legend-icon.category-career { background: var(--cat-career); }
+.legend-dot.category-home,
+.legend-icon.category-home { background: var(--cat-home); }
+.legend-dot.category-travel,
+.legend-icon.category-travel { background: var(--cat-travel); }
 
 .footer-spacer,
 .action-spacer {
@@ -1203,13 +1528,17 @@
 .eyebrow {
   margin: 0 0 4px;
   display: inline-flex;
+  max-width: 100%;
   padding: 3px 8px;
+  overflow: hidden;
   border-radius: 999px;
   color: var(--primary-hover);
   background: var(--primary-soft);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   animation: soft-pop .35s var(--ease-out) .08s both;
 }
 
@@ -1838,13 +2167,13 @@ button:focus-visible {
     display: none;
   }
 
-  .task-mark > svg:first-of-type {
-    top: 10px;
+  .task-check {
+    top: 8px;
     left: 8px;
   }
 
-  .task-mark > svg:first-of-type + .task-label {
-    left: 26px;
+  .task-mark.status-completed .task-label {
+    left: 28px;
   }
 
   .ongoing-edge::after {

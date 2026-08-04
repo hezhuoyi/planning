@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { addMonths, format, startOfMonth } from 'date-fns'
+import { addMonths, addWeeks, endOfWeek, format, startOfMonth, startOfWeek } from 'date-fns'
 import {
   CalendarDays,
   ChevronLeft,
@@ -43,6 +43,9 @@ function App() {
   const [focusTodayToken, setFocusTodayToken] = useState(0)
   const [viewScope, setViewScope] = useState<SummaryScope>('month')
   const [viewMonth, setViewMonth] = useState(() => startOfMonth(new Date()))
+  const [viewWeek, setViewWeek] = useState(() =>
+    startOfWeek(new Date(), { weekStartsOn: 1 }),
+  )
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [dialogDate, setDialogDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [taskDialogOpen, setTaskDialogOpen] = useState(false)
@@ -50,9 +53,10 @@ function App() {
   const [toast, setToast] = useState<string | null>(null)
 
   const today = useMemo(() => new Date(), [])
+  const viewAnchor = viewScope === 'week' ? viewWeek : viewMonth
   const summary = useMemo(
-    () => getPlanSummary(tasks, today, viewScope, viewMonth),
-    [tasks, today, viewMonth, viewScope],
+    () => getPlanSummary(tasks, today, viewScope, viewAnchor),
+    [tasks, today, viewAnchor, viewScope],
   )
 
   const showToast = (message: string) => {
@@ -76,10 +80,7 @@ function App() {
   const syncLabel = unlocked ? SYNC_LABELS[syncState] : SYNC_LABELS.local
   const needsSyncAttention =
     isConfigured &&
-    (!unlocked ||
-      syncState === 'connecting' ||
-      syncState === 'offline' ||
-      syncState === 'error')
+    (!unlocked || syncState === 'offline' || syncState === 'error')
 
   return (
     <main className="app-shell">
@@ -103,7 +104,9 @@ function App() {
             <h1>Planning</h1>
             <p>
               {format(today, 'M月d日')}
-              {unlocked && syncState === 'synced' ? ' · 已同步' : ''}
+              {unlocked && syncState !== 'offline' && syncState !== 'error'
+                ? ' · 已同步'
+                : ''}
             </p>
           </div>
         </button>
@@ -113,7 +116,9 @@ function App() {
             className="button today-button"
             type="button"
             onClick={() => {
-              setViewMonth(startOfMonth(new Date()))
+              const now = new Date()
+              setViewMonth(startOfMonth(now))
+              setViewWeek(startOfWeek(now, { weekStartsOn: 1 }))
               setFocusTodayToken((value) => value + 1)
             }}
             aria-label="定位到今天"
@@ -154,9 +159,24 @@ function App() {
             <button
               type="button"
               role="tab"
+              aria-selected={viewScope === 'week'}
+              className={viewScope === 'week' ? 'active' : ''}
+              onClick={() => {
+                setViewScope('week')
+                setViewWeek(startOfWeek(new Date(), { weekStartsOn: 1 }))
+              }}
+            >
+              周
+            </button>
+            <button
+              type="button"
+              role="tab"
               aria-selected={viewScope === 'month'}
               className={viewScope === 'month' ? 'active' : ''}
-              onClick={() => setViewScope('month')}
+              onClick={() => {
+                setViewScope('month')
+                setViewMonth(startOfMonth(new Date()))
+              }}
             >
               月
             </button>
@@ -170,6 +190,36 @@ function App() {
               全部
             </button>
           </div>
+
+          {viewScope === 'week' && (
+            <div className="month-nav" aria-label="切换周">
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="上一周"
+                onClick={() =>
+                  setViewWeek((week) => startOfWeek(addWeeks(week, -1), { weekStartsOn: 1 }))
+                }
+              >
+                <ChevronLeft size={16} aria-hidden="true" />
+              </button>
+              <strong>
+                {format(viewWeek, 'M月d日')}
+                –
+                {format(endOfWeek(viewWeek, { weekStartsOn: 1 }), 'M月d日')}
+              </strong>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="下一周"
+                onClick={() =>
+                  setViewWeek((week) => startOfWeek(addWeeks(week, 1), { weekStartsOn: 1 }))
+                }
+              >
+                <ChevronRight size={16} aria-hidden="true" />
+              </button>
+            </div>
+          )}
 
           {viewScope === 'month' && (
             <div className="month-nav" aria-label="切换月份">
@@ -196,7 +246,41 @@ function App() {
 
         <div className="summary-copy">
           <p className="summary-kicker">{summary.kicker}</p>
-          <h2>{summary.headline}</h2>
+          <div className="summary-main">
+            <h2>{summary.headline}</h2>
+            {summary.total > 0 &&
+              (summary.inFlight > 0 ||
+                summary.upcoming > 0 ||
+                summary.overdue > 0 ||
+                summary.completed > 0) && (
+                <ul className="summary-stats" aria-label="状态速览">
+                  {summary.inFlight > 0 && (
+                    <li className="is-progress">
+                      <i aria-hidden="true" />
+                      {summary.inFlight} 进行中
+                    </li>
+                  )}
+                  {summary.upcoming > 0 && (
+                    <li className="is-upcoming">
+                      <i aria-hidden="true" />
+                      {summary.upcoming} 待开始
+                    </li>
+                  )}
+                  {summary.overdue > 0 && (
+                    <li className="is-overdue">
+                      <i aria-hidden="true" />
+                      {summary.overdue} 已逾期
+                    </li>
+                  )}
+                  {summary.completed > 0 && (
+                    <li className="is-done">
+                      <i aria-hidden="true" />
+                      {summary.completed} 已完成
+                    </li>
+                  )}
+                </ul>
+              )}
+          </div>
           {summary.detail ? <p>{summary.detail}</p> : null}
         </div>
       </section>
@@ -204,7 +288,7 @@ function App() {
       <GanttBoard
         tasks={tasks}
         viewScope={viewScope}
-        viewMonth={viewMonth}
+        viewMonth={viewAnchor}
         focusTodayToken={focusTodayToken}
         onEdit={openEditTask}
         onCreateAt={openNewTask}
@@ -218,7 +302,10 @@ function App() {
           onClose={() => setTaskDialogOpen(false)}
           onSave={(task) => {
             void saveTask(task)
-            showToast(editingTask ? '已更新安排' : '记好啦')
+            const justCompleted = Boolean(task.completedAt) && !editingTask?.completedAt
+            showToast(
+              justCompleted ? '完成啦' : editingTask ? '已更新安排' : '记好啦',
+            )
           }}
           onDelete={(id) => {
             void deleteTask(id)

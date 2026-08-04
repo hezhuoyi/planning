@@ -3,6 +3,7 @@ import {
   differenceInCalendarDays,
   endOfDay,
   endOfMonth,
+  endOfWeek,
   isAfter,
   isBefore,
   max,
@@ -10,8 +11,11 @@ import {
   parseISO,
   startOfDay,
   startOfMonth,
+  startOfWeek,
 } from 'date-fns'
 import type { Task, TaskPosition, TaskStatus, TimelineRange } from './types'
+
+const WEEK_OPTIONS = { weekStartsOn: 1 as const }
 
 export function getTaskStatus(task: Task, today: Date): TaskStatus {
   if (task.completedAt) return 'completed'
@@ -45,7 +49,7 @@ export function getTaskProgress(task: Task, today: Date): number {
   return Math.min(100, Math.round((elapsed / total) * 100))
 }
 
-export type SummaryScope = 'month' | 'all'
+export type SummaryScope = 'week' | 'month' | 'all'
 
 export interface PlanSummary {
   total: number
@@ -68,13 +72,26 @@ function taskOverlapsMonth(task: Task, monthAnchor: Date): boolean {
   return !isBefore(end, monthStart)
 }
 
-/** 月：与指定月有交集；全部：所有事项 */
+function taskOverlapsWeek(task: Task, weekAnchor: Date): boolean {
+  const weekStart = startOfWeek(weekAnchor, WEEK_OPTIONS)
+  const weekEnd = endOfWeek(weekAnchor, WEEK_OPTIONS)
+  const start = startOfDay(parseISO(task.startDate))
+  if (isAfter(start, weekEnd)) return false
+  if (task.isOngoing || !task.endDate) return true
+  const end = endOfDay(parseISO(task.endDate))
+  return !isBefore(end, weekStart)
+}
+
+/** 周/月：与指定范围有交集；全部：所有事项 */
 export function filterTasksForSummary(
   tasks: Task[],
   today: Date,
   scope: SummaryScope,
   monthAnchor: Date = today,
 ): Task[] {
+  if (scope === 'week') {
+    return tasks.filter((task) => taskOverlapsWeek(task, monthAnchor))
+  }
   if (scope === 'month') {
     return tasks.filter((task) => taskOverlapsMonth(task, monthAnchor))
   }
@@ -96,7 +113,8 @@ export function getPlanSummary(
     (status) => status === 'in_progress' || status === 'ongoing',
   ).length
   const total = scoped.length
-  const kicker = scope === 'month' ? '本月速览' : '全部计划'
+  const kicker =
+    scope === 'week' ? '本周速览' : scope === 'month' ? '本月速览' : '全部计划'
 
   if (total === 0) {
     return {
@@ -106,7 +124,12 @@ export function getPlanSummary(
       upcoming,
       overdue,
       kicker,
-      headline: scope === 'month' ? '本月还没有安排' : '还没有安排事项',
+      headline:
+        scope === 'week'
+          ? '这周还没有安排'
+          : scope === 'month'
+            ? '本月还没有安排'
+            : '还没有安排事项',
       detail: '点右上角「新增」，把想做的事放上时间轴吧',
     }
   }
@@ -119,20 +142,24 @@ export function getPlanSummary(
       upcoming,
       overdue,
       kicker,
-      headline: scope === 'month' ? '本月的计划都完成啦' : '太棒了，计划都完成啦',
+      headline:
+        scope === 'week'
+          ? '这周的计划都完成啦'
+          : scope === 'month'
+            ? '本月的计划都完成啦'
+            : '太棒了，计划都完成啦',
       detail: '',
     }
   }
 
-  const parts: string[] = []
-  if (inFlight) parts.push(`${inFlight} 项进行中`)
-  if (upcoming) parts.push(`${upcoming} 项待开始`)
-  if (overdue) parts.push(`${overdue} 项已逾期`)
-  if (completed) parts.push(`已完成 ${completed} 项`)
-
-  const joined = parts.join(' · ')
   const headline =
-    scope === 'month' ? `本月 ${joined}` : joined || `共 ${total} 项`
+    overdue > 0
+      ? '有事项需要留意一下'
+      : inFlight > 0
+        ? '有事项正在推进'
+        : scope === 'all'
+          ? '计划都在这儿'
+          : '还有安排等着开始'
 
   return {
     total,
@@ -152,6 +179,12 @@ export function getTimelineRange(
   scope: SummaryScope = 'month',
   monthAnchor: Date = today,
 ): TimelineRange {
+  if (scope === 'week') {
+    return {
+      start: startOfWeek(monthAnchor, WEEK_OPTIONS),
+      end: endOfWeek(monthAnchor, WEEK_OPTIONS),
+    }
+  }
   if (scope === 'month') {
     return {
       start: startOfMonth(monthAnchor),

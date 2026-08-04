@@ -88,8 +88,8 @@ describe('getPlanSummary', () => {
     expect(summary.total).toBe(3)
     expect(summary.completed).toBe(1)
     expect(summary.overdue).toBe(1)
-    expect(summary.headline).toContain('本月')
-    expect(summary.headline).toContain('进行中')
+    expect(summary.headline).toContain('留意')
+    expect(summary.overdue).toBe(1)
     expect(summary.detail).toBe('')
   })
 
@@ -110,12 +110,26 @@ describe('getPlanSummary', () => {
 
     expect(summary.kicker).toBe('全部计划')
     expect(summary.total).toBe(2)
-    expect(summary.headline).toMatch(/进行中|待开始/)
+    expect(summary.inFlight + summary.upcoming).toBeGreaterThan(0)
     expect(summary.detail).toBe('')
   })
 })
 
 describe('getTimelineRange', () => {
+  it('limits the week scope to Monday–Sunday of the selected week', () => {
+    const range = getTimelineRange(
+      [{ ...baseTask, startDate: '2026-05-01', endDate: '2027-02-10' }],
+      new Date(2026, 7, 15),
+      'week',
+      new Date(2026, 7, 12),
+    )
+
+    expect(range.start).toEqual(new Date(2026, 7, 10))
+    expect(range.end.getFullYear()).toBe(2026)
+    expect(range.end.getMonth()).toBe(7)
+    expect(range.end.getDate()).toBe(16)
+  })
+
   it('limits the month scope to the selected calendar month', () => {
     const range = getTimelineRange(
       [{ ...baseTask, startDate: '2026-05-01', endDate: '2027-02-10' }],

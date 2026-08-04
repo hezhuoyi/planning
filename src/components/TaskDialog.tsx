@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Check, Flag, Save, Trash2, X } from 'lucide-react'
-import { TASK_CATEGORIES } from '../domain/categories'
+import { TASK_CATEGORIES, CATEGORY_LABELS } from '../domain/categories'
 import { normalizeOwner, TASK_OWNERS, type TaskOwner } from '../domain/owners'
 import type { Task, TaskCategory, TaskType } from '../domain/types'
 import { useDialogMotion } from '../hooks/useDialogMotion'
@@ -124,6 +124,13 @@ export function TaskDialog({
     requestClose()
   }
 
+  const ownerLabel = normalizeOwner(draft.owner) ?? '未指定'
+  const typeLabel =
+    draft.type === 'milestone' ? '某一天' : draft.isOngoing ? '持续进行' : '一段时间'
+  const eyebrow = confirmDelete
+    ? '删除事项'
+    : `${CATEGORY_LABELS[draft.category]} · ${ownerLabel} · ${typeLabel}`
+
   return (
     <div
       className={`dialog-backdrop ${leaving ? 'is-leaving' : ''}`}
@@ -139,7 +146,7 @@ export function TaskDialog({
       >
         <header className="dialog-header">
           <div>
-            <p className="eyebrow">小事一桩</p>
+            <p className="eyebrow">{eyebrow}</p>
             <h2 id="task-dialog-title">
               {confirmDelete ? '确认删除？' : task ? '改一改安排' : '记一件新事'}
             </h2>

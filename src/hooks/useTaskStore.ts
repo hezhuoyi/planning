@@ -166,7 +166,7 @@ export function useTaskStore() {
       cacheOwnerRef.current === FAMILY_USER_ID &&
       localRevisionRef.current === startingRevision
 
-    setSyncState('connecting')
+    setSyncState((current) => (current === 'synced' ? 'synced' : 'connecting'))
     try {
       const { data, error } = await supabase
         .from('tasks')

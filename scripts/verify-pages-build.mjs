@@ -18,8 +18,20 @@ const entryBundle =
 const checks = [
   [html.includes(`${expectedBase}assets/`), 'index.html asset URLs'],
   [html.includes(`${expectedBase}manifest.webmanifest`), 'manifest URL'],
+  [html.includes('apple-touch-icon'), 'apple-touch-icon link'],
+  [html.includes('apple-touch-icon-20260804c.png'), 'versioned apple-touch-icon'],
   [manifest.start_url === expectedBase, 'manifest start_url'],
   [manifest.scope === expectedBase, 'manifest scope'],
+  [
+    Array.isArray(manifest.icons) &&
+      manifest.icons.some(
+        (icon) =>
+          typeof icon?.src === 'string' &&
+          icon.src.includes('pwa-192-20260804c.png') &&
+          icon.type === 'image/png',
+      ),
+    'manifest png icons',
+  ],
   [!html.includes('registerSW.js'), 'single app-managed service worker registration'],
   [entryBundle.includes(`${expectedBase}sw.js`), 'service worker registration'],
   [entryBundle.includes('visibilitychange'), 'foreground update check'],

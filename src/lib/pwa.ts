@@ -2,11 +2,13 @@ import { registerSW } from 'virtual:pwa-register'
 
 const UPDATE_INTERVAL_MS = 60 * 60 * 1000
 const ICON_CACHE_PATTERNS = [
-  /favicon\.svg/i,
-  /pwa-\d+x\d+\.svg/i,
+  /favicon[^/]*\.(svg|ico)/i,
+  /apple-touch-icon[^/]*\.png/i,
+  /pwa-\d+[^/]*\.(svg|png)/i,
   /icons\.svg/i,
   /manifest\.webmanifest/i,
 ]
+const ICON_CACHE_NAME_PATTERN = /^planning-icons-v/i
 
 async function clearIconCaches(): Promise<void> {
   if (!('caches' in window)) return
@@ -14,6 +16,10 @@ async function clearIconCaches(): Promise<void> {
     const keys = await caches.keys()
     await Promise.all(
       keys.map(async (key) => {
+        if (ICON_CACHE_NAME_PATTERN.test(key)) {
+          await caches.delete(key)
+          return
+        }
         const cache = await caches.open(key)
         const requests = await cache.keys()
         await Promise.all(

@@ -6,7 +6,7 @@ const requestedBase = process.env.VITE_BASE_PATH ?? '/'
 const normalizedPath = requestedBase.replace(/^\/+|\/+$/g, '')
 const base = normalizedPath ? `/${normalizedPath}/` : '/'
 /** Bump + rename icon files when replacing app icons (iOS caches by URL path). */
-const ICON_CACHE_VERSION = '20260804d'
+const ICON_CACHE_VERSION = '20260804e'
 
 export default defineConfig({
   base,
@@ -31,8 +31,8 @@ export default defineConfig({
         start_url: base,
         scope: base,
         display: 'standalone',
-        background_color: '#f7ebe3',
-        theme_color: '#e08a55',
+        background_color: '#f4f6f8',
+        theme_color: '#3d566e',
         icons: [
           {
             src: `${base}pwa-192-${ICON_CACHE_VERSION}.png`,

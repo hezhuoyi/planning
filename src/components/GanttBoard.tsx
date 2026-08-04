@@ -12,9 +12,15 @@ import {
   startOfDay,
   startOfMonth,
 } from 'date-fns'
-import { Check } from 'lucide-react'
+import { Check, Heart, Mars, Venus } from 'lucide-react'
 import { CATEGORY_LABELS, TASK_CATEGORIES } from '../domain/categories'
-import { getOwnerGroup, OWNER_GROUPS, type OwnerGroup } from '../domain/owners'
+import {
+  getOwnerGroup,
+  getOwnerMarkKind,
+  OWNER_GROUPS,
+  type OwnerGroup,
+  type OwnerMarkKind,
+} from '../domain/owners'
 import {
   getTaskBarClip,
   getTaskPosition,
@@ -81,6 +87,13 @@ function clipPercent(left: number, width: number) {
   const end = Math.min(100, left + width)
   if (end <= start) return null
   return { left: start, width: end - start }
+}
+
+function OwnerMarkIcon({ kind }: { kind: OwnerMarkKind }) {
+  if (kind === 'female') return <Venus size={12} strokeWidth={2.4} />
+  if (kind === 'male') return <Mars size={12} strokeWidth={2.4} />
+  if (kind === 'together') return <Heart size={11} strokeWidth={2.4} fill="currentColor" />
+  return <span className="owner-mark-dot" />
 }
 
 export function GanttBoard({
@@ -313,9 +326,7 @@ export function GanttBoard({
               ))}
             </div>
             {todayVisible && (
-              <div className="today-line" style={{ left: `${todayLeft}%` }} aria-label="今天">
-                <span>今天</span>
-              </div>
+              <div className="today-line" style={{ left: `${todayLeft}%` }} aria-hidden="true" />
             )}
 
             {groupedTasks.map((group) => {
@@ -330,8 +341,15 @@ export function GanttBoard({
               if (visibleTasks.length === 0) return null
               return (
               <div className="owner-group" key={group.owner}>
-                <div className="owner-group-label" aria-label={`负责人 ${group.owner}`}>
-                  <span>{group.owner}</span>
+                <div
+                  className="owner-group-label"
+                  data-owner={group.owner}
+                  aria-label={`负责人 ${group.owner}`}
+                >
+                  <span className="owner-mark" aria-hidden="true">
+                    <OwnerMarkIcon kind={getOwnerMarkKind(group.owner)} />
+                  </span>
+                  <span className="owner-name">{group.owner}</span>
                 </div>
                 {visibleTasks.map((task) => {
                   const position = getTaskPosition(task, range)

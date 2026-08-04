@@ -728,35 +728,10 @@
 }
 
 .today-line {
-  z-index: 4;
+  z-index: 2;
   width: 2px;
   background: var(--primary);
   pointer-events: none;
-}
-
-.today-line::before {
-  position: absolute;
-  top: -1px;
-  left: -5px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  content: "";
-  background: var(--primary);
-  box-shadow: 0 0 0 4px var(--focus-ring);
-}
-
-.today-line span {
-  position: absolute;
-  top: 10px;
-  left: 8px;
-  padding: 2px 7px;
-  border-radius: 999px;
-  color: var(--primary-hover);
-  background: var(--primary-soft);
-  font-size: 10px;
-  font-weight: 800;
-  white-space: nowrap;
 }
 
 .owner-group {
@@ -771,13 +746,14 @@
 .owner-group-label {
   position: sticky;
   left: 0;
-  z-index: 4;
+  z-index: 5;
   display: flex;
+  gap: 6px;
   width: max-content;
-  max-width: 120px;
+  max-width: 136px;
   min-height: 28px;
   align-items: center;
-  padding: 4px 12px;
+  padding: 4px 12px 4px 8px;
   border-right: 1px solid var(--line);
   border-radius: 0 999px 999px 0;
   color: var(--owner-label-color);
@@ -785,6 +761,54 @@
   font-weight: 800;
   letter-spacing: 0.02em;
   background: var(--owner-label-bg);
+}
+
+.owner-mark {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: var(--owner-mark-color, var(--owner-label-color));
+  background: var(--owner-mark-bg, color-mix(in srgb, var(--owner-label-color) 16%, var(--panel)));
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--owner-mark-color, var(--owner-label-color)) 20%, transparent);
+  line-height: 1;
+}
+
+.owner-mark-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.7;
+}
+
+.owner-group-label[data-owner='王慧云'] {
+  --owner-mark-bg: color-mix(in srgb, #f0b4c0 42%, var(--panel));
+  --owner-mark-color: #c45f78;
+}
+
+.owner-group-label[data-owner='何卓逸'] {
+  --owner-mark-bg: color-mix(in srgb, #9bb8d4 42%, var(--panel));
+  --owner-mark-color: #4d7194;
+}
+
+.owner-group-label[data-owner='一起'] {
+  --owner-mark-bg: color-mix(in srgb, #f0c08a 48%, var(--panel));
+  --owner-mark-color: #d07845;
+}
+
+.owner-group-label[data-owner='未指定'] {
+  --owner-mark-bg: color-mix(in srgb, var(--muted) 14%, var(--panel));
+  --owner-mark-color: var(--muted);
+}
+
+.owner-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gantt-lane {
@@ -1681,10 +1705,21 @@ button:focus-visible {
   }
 
   .owner-group-label {
-    max-width: 68px;
+    max-width: 86px;
     min-height: 26px;
-    padding: 3px 10px;
+    gap: 5px;
+    padding: 3px 10px 3px 6px;
     font-size: 11px;
+  }
+
+  .owner-mark {
+    width: 16px;
+    height: 16px;
+  }
+
+  .owner-mark svg {
+    width: 10px;
+    height: 10px;
   }
 
   .task-mark {

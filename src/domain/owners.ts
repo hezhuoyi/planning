@@ -24,6 +24,22 @@ export function getOwnerGroup(owner: string | null | undefined): OwnerGroup {
   return normalizeOwner(owner) ?? '未指定'
 }
 
+/** 标签前标识类型 */
+export type OwnerMarkKind = 'female' | 'male' | 'together' | 'unset'
+
+export function getOwnerMarkKind(owner: OwnerGroup): OwnerMarkKind {
+  switch (owner) {
+    case '王慧云':
+      return 'female'
+    case '何卓逸':
+      return 'male'
+    case '一起':
+      return 'together'
+    case '未指定':
+      return 'unset'
+  }
+}
+
 /** 将旧负责人名迁移到新名；无变化时返回原数组 */
 export function migrateTaskOwners<T extends { owner: string | null }>(tasks: T[]): T[] {
   let changed = false

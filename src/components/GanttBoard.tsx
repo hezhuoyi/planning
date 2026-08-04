@@ -16,6 +16,7 @@ import { Check } from 'lucide-react'
 import { CATEGORY_LABELS, TASK_CATEGORIES } from '../domain/categories'
 import { getOwnerGroup, OWNER_GROUPS, type OwnerGroup } from '../domain/owners'
 import {
+  getTaskBarClip,
   getTaskPosition,
   getTaskProgress,
   getTaskStatus,
@@ -41,8 +42,19 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   completed: '已完成',
 }
 
-function getBarDensity(width: number): 'narrow' | 'normal' {
-  if (width > 0 && width < 0.22) return 'narrow'
+function getBarDensity(
+  widthRatio: number,
+  approxPx?: number,
+): 'tight' | 'narrow' | 'normal' {
+  if (widthRatio <= 0) return 'normal'
+  // 优先按像素判断：全部视角下比例会偏小，但条本身可能够宽
+  if (typeof approxPx === 'number' && approxPx > 0) {
+    if (approxPx < 44) return 'tight'
+    if (approxPx < 120) return 'narrow'
+    return 'normal'
+  }
+  if (widthRatio < 0.06) return 'tight'
+  if (widthRatio < 0.18) return 'narrow'
   return 'normal'
 }
 
@@ -94,10 +106,10 @@ export function GanttBoard({
     : viewScope === 'month'
       ? 22
       : 5.2
-  const boardWidth = Math.max(
-    narrow ? 320 : 640,
-    Math.round(totalDays * pixelsPerDay),
-  )
+  const fitMonth = viewScope === 'month'
+  const boardWidth = fitMonth
+    ? undefined
+    : Math.max(narrow ? 320 : 640, Math.round(totalDays * pixelsPerDay))
   const scrollRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const showYearRow = months.length > 1
@@ -234,11 +246,16 @@ export function GanttBoard({
 
   return (
     <section className="gantt-shell" aria-label="家庭计划">
-      <div className="gantt-scroll" ref={scrollRef}>
+      <div
+        className={`gantt-scroll${fitMonth ? ' is-month' : ''}`}
+        ref={scrollRef}
+      >
         <div
           ref={canvasRef}
-          className={`gantt-canvas zoom-period ${showYearRow ? '' : 'header-compact'}`.trim()}
-          style={{ width: boardWidth }}
+          className={`gantt-canvas zoom-period${showYearRow ? '' : ' header-compact'}${
+            fitMonth ? ' is-month' : ''
+          }`}
+          style={boardWidth ? { width: boardWidth } : undefined}
         >
           <div className="gantt-header">
             {showYearRow && (
@@ -318,18 +335,31 @@ export function GanttBoard({
                 </div>
                 {visibleTasks.map((task) => {
                   const position = getTaskPosition(task, range)
+                  const clip = getTaskBarClip(task, range)
                   const status = getTaskStatus(task, today)
                   const progress = getTaskProgress(task, today)
                   const categoryLabel = CATEGORY_LABELS[task.category]
                   const density =
-                    task.type === 'milestone' ? 'normal' : getBarDensity(position.width)
+                    task.type === 'milestone'
+                      ? 'normal'
+                      : getBarDensity(
+                          position.width,
+                          boardWidth ? position.width * boardWidth : undefined,
+                        )
+                  const densityClass =
+                    density === 'tight'
+                      ? ' is-tight'
+                      : density === 'narrow'
+                        ? ' is-narrow'
+                        : ''
+                  const clipClass = `${clip.clipStart ? ' clip-start' : ''}${
+                    clip.clipEnd ? ' clip-end' : ''
+                  }`
                   return (
                     <div className="gantt-lane" key={task.id} onDoubleClick={createFromPointer}>
                       <button
                         type="button"
-                        className={`task-mark category-${task.category} status-${status} ${task.type}${
-                          density === 'narrow' ? ' is-narrow' : ''
-                        }`}
+                        className={`task-mark category-${task.category} status-${status} ${task.type}${densityClass}${clipClass}`}
                         style={{
                           left: `${position.left * 100}%`,
                           width:
@@ -358,9 +388,9 @@ export function GanttBoard({
                           <span className="task-label">
                             <span className="task-title">{task.title}</span>
                             <small className="task-meta">
-                              <span>{categoryLabel}</span>
-                              <span>{STATUS_LABELS[status]}</span>
-                              <span>{progress}%</span>
+                              <span className="task-meta-tag">{categoryLabel}</span>
+                              <span className="task-meta-tag">{STATUS_LABELS[status]}</span>
+                              <span className="task-pct">{progress}%</span>
                             </small>
                           </span>
                         )}

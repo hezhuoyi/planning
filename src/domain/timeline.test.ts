@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  getTaskBarClip,
   getTaskPosition,
   getTaskProgress,
   getTaskStatus,
@@ -193,5 +194,33 @@ describe('getTaskPosition', () => {
     )
 
     expect(position.width).toBe(0)
+  })
+})
+
+describe('getTaskBarClip', () => {
+  it('marks clipped ends when a task continues past the visible month', () => {
+    const clip = getTaskBarClip(
+      { ...baseTask, startDate: '2026-07-20', endDate: '2026-09-10' },
+      {
+        start: new Date(2026, 7, 1),
+        end: new Date(2026, 7, 31, 23, 59, 59, 999),
+      },
+    )
+
+    expect(clip.clipStart).toBe(true)
+    expect(clip.clipEnd).toBe(true)
+  })
+
+  it('clips only the continuing end for ongoing tasks', () => {
+    const clip = getTaskBarClip(
+      { ...baseTask, startDate: '2026-08-10', endDate: null, isOngoing: true },
+      {
+        start: new Date(2026, 7, 1),
+        end: new Date(2026, 7, 31, 23, 59, 59, 999),
+      },
+    )
+
+    expect(clip.clipStart).toBe(false)
+    expect(clip.clipEnd).toBe(true)
   })
 })

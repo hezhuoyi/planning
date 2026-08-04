@@ -221,3 +221,20 @@ export function getTaskPosition(
     width: Math.min(1 - leftDays / totalDays, widthDays / totalDays),
   }
 }
+
+/** 任务在可视范围外还有延伸时，对应端应取消胶囊圆角 */
+export function getTaskBarClip(
+  task: Task,
+  range: TimelineRange,
+): { clipStart: boolean; clipEnd: boolean } {
+  const rangeStart = startOfDay(range.start)
+  const rangeEnd = endOfDay(range.end)
+  const rawStart = startOfDay(parseISO(task.startDate))
+  const continuesPastEnd = task.isOngoing || !task.endDate
+  const rawEnd = continuesPastEnd ? null : endOfDay(parseISO(task.endDate!))
+
+  return {
+    clipStart: isBefore(rawStart, rangeStart),
+    clipEnd: continuesPastEnd || (rawEnd !== null && isAfter(rawEnd, rangeEnd)),
+  }
+}

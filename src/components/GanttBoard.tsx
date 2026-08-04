@@ -163,41 +163,58 @@ export function GanttBoard({
     }
   })
 
-  const periodBlocks = monthBlocks.flatMap((block) => {
-    const lastDay = getDate(endOfMonth(block.month))
-    return [
-      { label: '上旬', start: 1, length: 10 },
-      { label: '中旬', start: 11, length: 10 },
-      { label: '下旬', start: 21, length: lastDay - 20 },
-    ]
-      .map((period) => {
-        const periodStart = new Date(
-          block.month.getFullYear(),
-          block.month.getMonth(),
-          period.start,
-        )
-        const periodEnd = new Date(
-          block.month.getFullYear(),
-          block.month.getMonth(),
-          period.start + period.length - 1,
-        )
-        const visibleStart = max([startOfDay(periodStart), startOfDay(range.start)])
-        const visibleEnd = min([startOfDay(periodEnd), startOfDay(range.end)])
-        if (visibleEnd < visibleStart) return null
-        const left = dateToPercent(visibleStart)
-        const width =
-          ((differenceInCalendarDays(visibleEnd, visibleStart) + 1) / totalDays) * 100
-        const clipped = clipPercent(left, width)
-        if (!clipped) return null
-        return {
-          key: `${block.key}-${period.label}`,
-          label: period.label,
-          left: clipped.left,
-          width: clipped.width,
-        }
+  const periodBlocks = fitMonth
+    ? (
+        [
+          { label: '月初', index: 0 },
+          { label: '月中', index: 1 },
+          { label: '月末', index: 2 },
+        ] as const
+      ).map((period) => ({
+        key: period.label,
+        label: period.label,
+        left: (period.index * 100) / 3,
+        width: 100 / 3,
+        tick: false as const,
+      }))
+    : monthBlocks.flatMap((block) => {
+        const lastDay = getDate(endOfMonth(block.month))
+        return [
+          { label: '月初', start: 1, length: 10 },
+          { label: '月中', start: 11, length: 10 },
+          { label: '月末', start: 21, length: lastDay - 20 },
+        ]
+          .map((period) => {
+            const periodStart = new Date(
+              block.month.getFullYear(),
+              block.month.getMonth(),
+              period.start,
+            )
+            const periodEnd = new Date(
+              block.month.getFullYear(),
+              block.month.getMonth(),
+              period.start + period.length - 1,
+            )
+            const visibleStart = max([startOfDay(periodStart), startOfDay(range.start)])
+            const visibleEnd = min([startOfDay(periodEnd), startOfDay(range.end)])
+            if (visibleEnd < visibleStart) return null
+            const left = dateToPercent(visibleStart)
+            const width =
+              ((differenceInCalendarDays(visibleEnd, visibleStart) + 1) / totalDays) * 100
+            const clipped = clipPercent(left, width)
+            if (!clipped) return null
+            return {
+              key: `${block.key}-${period.label}`,
+              label: period.label,
+              left: clipped.left,
+              width: clipped.width,
+              tick: false as const,
+            }
+          })
+          .filter((item): item is NonNullable<typeof item> => Boolean(item))
       })
-      .filter((item): item is NonNullable<typeof item> => Boolean(item))
-  })
+
+  const periodGuides = periodBlocks.filter((block) => block.left > 0.4)
 
   const todayVisible = isWithinInterval(today, range)
   const todayLeft = dateToPercent(today)
@@ -312,7 +329,7 @@ export function GanttBoard({
 
           <div className="gantt-body">
             <div className="timeline-guides" aria-hidden="true">
-              {periodBlocks.map((block) => (
+              {periodGuides.map((block) => (
                 <i
                   className="guide-line"
                   key={block.key}

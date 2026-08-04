@@ -1148,13 +1148,18 @@
 .dialog-backdrop {
   position: fixed;
   z-index: 30;
-  inset: 0;
+  top: var(--vv-offset-top, 0px);
+  right: 0;
+  left: 0;
+  height: var(--vv-height, 100dvh);
   display: grid;
   padding: 18px;
   place-items: center;
   background: color-mix(in srgb, var(--ink) 32%, transparent);
   backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   animation: backdrop-in .22s ease both;
+  overscroll-behavior: none;
 }
 
 .dialog-backdrop.is-leaving {
@@ -1163,12 +1168,14 @@
 }
 
 .task-dialog {
-  position: static;
+  position: relative;
+  display: flex;
+  flex-direction: column;
   width: min(540px, 100%);
-  max-height: calc(100vh - 36px);
+  max-height: min(calc(var(--vv-height, 100dvh) - 36px), calc(100dvh - 36px));
   margin: 0;
   padding: 0;
-  overflow: auto;
+  overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 24px;
   color: var(--ink);
@@ -1183,6 +1190,7 @@
 
 .dialog-header {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
@@ -1210,6 +1218,17 @@
   font-size: 18px;
   font-weight: 800;
   letter-spacing: -0.02em;
+}
+
+.task-dialog form,
+.sync-section,
+.delete-confirm {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .task-dialog form,
@@ -1288,9 +1307,47 @@
 
 .form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 10px;
   margin-top: 12px;
+}
+
+.form-grid .field {
+  min-width: 0;
+}
+
+.date-range-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.date-field {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.date-field input[type='date'] {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding-right: 8px;
+  padding-left: 8px;
+  overflow: hidden;
+}
+
+.date-field input[type='date']::-webkit-date-and-time-value {
+  margin: 0;
+  text-align: left;
+}
+
+.date-field input[type='date']::-webkit-calendar-picker-indicator {
+  margin-left: 0;
+  padding: 0;
+  flex-shrink: 0;
 }
 
 .mode-switch {
@@ -1841,7 +1898,7 @@ button:focus-visible {
   .task-dialog,
   .sync-dialog {
     width: 100%;
-    max-height: min(92dvh, 100%);
+    max-height: min(92dvh, var(--vv-height, 100dvh));
     border-radius: 24px 24px 0 0;
     box-shadow: 0 -10px 40px color-mix(in srgb, var(--ink) 14%, transparent);
     animation: sheet-up .36s var(--ease-out) both;
@@ -1853,6 +1910,7 @@ button:focus-visible {
     z-index: 2;
     gap: 12px;
     padding: 12px 14px 10px;
+    padding-top: max(12px, env(safe-area-inset-top));
     background: var(--panel);
   }
 
@@ -1866,6 +1924,10 @@ button:focus-visible {
     padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
   }
 
+  .delete-confirm {
+    padding: 16px 14px calc(12px + env(safe-area-inset-bottom));
+  }
+
   .field input,
   .field select,
   .field textarea {
@@ -1873,9 +1935,17 @@ button:focus-visible {
     font-size: 16px;
   }
 
-  .form-grid {
-    grid-template-columns: 1fr 1fr;
+  .form-grid,
+  .date-range-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 8px;
+  }
+
+  .date-field input[type='date'] {
+    min-height: 42px;
+    padding-right: 6px;
+    padding-left: 6px;
+    font-size: 16px;
   }
 
   .check-rows {

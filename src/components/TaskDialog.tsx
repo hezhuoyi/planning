@@ -4,6 +4,7 @@ import { TASK_CATEGORIES } from '../domain/categories'
 import { normalizeOwner, TASK_OWNERS, type TaskOwner } from '../domain/owners'
 import type { Task, TaskCategory, TaskType } from '../domain/types'
 import { useDialogMotion } from '../hooks/useDialogMotion'
+import { useVisualViewportCss } from '../hooks/useVisualViewportCss'
 
 interface TaskDialogProps {
   task: Task | null
@@ -47,6 +48,7 @@ export function TaskDialog({
   const [shakeToken, setShakeToken] = useState(0)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const { leaving, requestClose } = useDialogMotion(onClose)
+  useVisualViewportCss()
 
   useEffect(() => {
     setDraft(makeDraft(task, initialDate, nextSortOrder))
@@ -182,7 +184,8 @@ export function TaskDialog({
           <label className="field full-field field-delay-1">
             <span>任务名称</span>
             <input
-              autoFocus
+              autoFocus={!task}
+              enterKeyHint="done"
               value={draft.title}
               onChange={(event) => setDraft({ ...draft, title: event.target.value })}
               placeholder="例如：准备三亚行程"
@@ -208,8 +211,8 @@ export function TaskDialog({
             </button>
           </div>
 
-          <div className="form-grid field-delay-3">
-            <label className="field">
+          <div className="date-range-grid field-delay-3">
+            <label className="field date-field">
               <span>开始日期</span>
               <input
                 type="date"
@@ -217,7 +220,7 @@ export function TaskDialog({
                 onChange={(event) => updateStartDate(event.target.value)}
               />
             </label>
-            <label className="field">
+            <label className="field date-field">
               <span>结束日期</span>
               <input
                 type="date"
@@ -227,6 +230,9 @@ export function TaskDialog({
                 onChange={(event) => updateEndDate(event.target.value)}
               />
             </label>
+          </div>
+
+          <div className="form-grid field-delay-3">
             <label className="field">
               <span>负责人</span>
               <select

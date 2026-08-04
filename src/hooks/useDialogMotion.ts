@@ -25,8 +25,17 @@ export function useDialogMotion(onClose: () => void) {
       if (event.key === 'Escape') requestClose()
     }
     window.addEventListener('keydown', onKey)
+
+    const { body } = document
+    const previousOverflow = body.style.overflow
+    const previousTouchAction = body.style.touchAction
+    body.style.overflow = 'hidden'
+    body.style.touchAction = 'none'
+
     return () => {
       window.removeEventListener('keydown', onKey)
+      body.style.overflow = previousOverflow
+      body.style.touchAction = previousTouchAction
       if (timerRef.current !== null) window.clearTimeout(timerRef.current)
     }
   }, [requestClose])

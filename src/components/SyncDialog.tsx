@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Cloud, Lock, Unlock, X } from 'lucide-react'
 import { THEMES, type ThemeId } from '../domain/themes'
 import { useDialogMotion } from '../hooks/useDialogMotion'
+import { useVisualViewportCss } from '../hooks/useVisualViewportCss'
 
 interface SyncDialogProps {
   unlocked: boolean
@@ -28,6 +29,7 @@ export function SyncDialog({
   const [message, setMessage] = useState('')
   const [shakeToken, setShakeToken] = useState(0)
   const { leaving, requestClose } = useDialogMotion(onClose)
+  useVisualViewportCss()
 
   const title = syncConfigured
     ? unlocked

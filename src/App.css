@@ -697,7 +697,6 @@
 
 .gantt-body {
   position: relative;
-  min-height: calc(var(--lane-height) * 11 + 34px);
   background: var(--panel);
 }
 
@@ -1636,10 +1635,6 @@ button:focus-visible {
   .header-block,
   .month-block {
     font-size: 11px;
-  }
-
-  .gantt-body {
-    min-height: calc(var(--lane-height) * 5 + 28px);
   }
 
   .owner-group-label {

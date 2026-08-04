@@ -34,6 +34,25 @@ export function applyTheme(id: ThemeId): void {
   for (const [name, value] of Object.entries(theme.tokens)) {
     root.style.setProperty(name, value)
   }
+
+  const surface = theme.tokens['--surface']
+  if (surface) {
+    root.style.backgroundColor = surface
+    if (document.body) document.body.style.backgroundColor = surface
+  }
+
+  const themeColor = surface ?? theme.tokens['--primary']
+  if (themeColor) {
+    const metas = document.querySelectorAll('meta[name="theme-color"]')
+    if (metas.length === 0) {
+      const meta = document.createElement('meta')
+      meta.name = 'theme-color'
+      meta.content = themeColor
+      document.head.appendChild(meta)
+    } else {
+      metas.forEach((meta) => meta.setAttribute('content', themeColor))
+    }
+  }
 }
 
 export function initTheme(): ThemeId {

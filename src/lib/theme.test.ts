@@ -47,6 +47,17 @@ describe('theme persistence', () => {
     )
   })
 
+  it('syncs page chrome colors with the active theme', () => {
+    document.head.innerHTML = '<meta name="theme-color" content="#e08a55" />'
+    applyTheme('mist')
+    const surface = document.documentElement.style.getPropertyValue('--surface').trim()
+    expect(surface).toBe('#eef3f8')
+    expect(document.documentElement.style.backgroundColor).toBeTruthy()
+    expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe(
+      surface,
+    )
+  })
+
   it('keeps category colors stable across themes', () => {
     applyTheme('apricot')
     const apricotHealth = document.documentElement.style.getPropertyValue('--cat-health')

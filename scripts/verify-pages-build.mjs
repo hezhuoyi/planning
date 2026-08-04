@@ -19,7 +19,7 @@ const checks = [
   [html.includes(`${expectedBase}assets/`), 'index.html asset URLs'],
   [html.includes(`${expectedBase}manifest.webmanifest`), 'manifest URL'],
   [html.includes('apple-touch-icon'), 'apple-touch-icon link'],
-  [html.includes('apple-touch-icon-20260804c.png'), 'versioned apple-touch-icon'],
+  [html.includes('apple-touch-icon-20260804d.png'), 'versioned apple-touch-icon'],
   [manifest.start_url === expectedBase, 'manifest start_url'],
   [manifest.scope === expectedBase, 'manifest scope'],
   [
@@ -27,7 +27,7 @@ const checks = [
       manifest.icons.some(
         (icon) =>
           typeof icon?.src === 'string' &&
-          icon.src.includes('pwa-192-20260804c.png') &&
+          icon.src.includes('pwa-192-20260804d.png') &&
           icon.type === 'image/png',
       ),
     'manifest png icons',

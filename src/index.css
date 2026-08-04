@@ -1,7 +1,7 @@
 :root {
   font-family: "Nunito", ui-rounded, "Segoe UI", sans-serif;
   color: var(--ink, #3d342e);
-  background: var(--surface, #f7ebe3);
+  background-color: var(--surface, #f7ebe3);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -16,7 +16,13 @@ html {
   min-width: 320px;
   overflow-x: hidden;
   overflow-y: auto;
-  background: var(--surface, #f7ebe3);
+  background-color: var(--surface, #f7ebe3);
+  background-image:
+    radial-gradient(900px 420px at 8% -8%, var(--glow-1, #ffdcc4) 0%, transparent 55%),
+    radial-gradient(800px 380px at 96% 4%, var(--glow-2, #ffe6d4) 0%, transparent 50%),
+    radial-gradient(700px 360px at 50% 110%, var(--glow-3, #fff0e6) 0%, transparent 45%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
 }
 
 body {
@@ -25,6 +31,8 @@ body {
   min-height: 100dvh;
   margin: 0;
   overflow-x: hidden;
+  background: transparent;
+  color: var(--ink, #3d342e);
 }
 
 button,
@@ -47,4 +55,5 @@ select {
 #root {
   min-height: 100%;
   min-height: 100dvh;
+  background: transparent;
 }

@@ -728,7 +728,7 @@
 }
 
 .today-line {
-  z-index: 2;
+  z-index: 0;
   width: 2px;
   background: var(--primary);
   pointer-events: none;

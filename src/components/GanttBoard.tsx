@@ -14,13 +14,8 @@ import {
 } from 'date-fns'
 import { Check, Heart, Mars, Venus } from 'lucide-react'
 import { CATEGORY_LABELS, TASK_CATEGORIES } from '../domain/categories'
-import {
-  getOwnerGroup,
-  getOwnerMarkKind,
-  OWNER_GROUPS,
-  type OwnerGroup,
-  type OwnerMarkKind,
-} from '../domain/owners'
+import { getOwnerGroup, getOwnerMarkKind, OWNER_GROUPS, type OwnerGroup, type OwnerMarkKind } from '../domain/owners'
+import { sortTasksForDisplay } from '../domain/taskSort'
 import {
   getTaskBarClip,
   getTaskPosition,
@@ -222,7 +217,7 @@ export function GanttBoard({
   const groupedTasks = useMemo(() => {
     const groups = new Map<OwnerGroup, Task[]>()
     for (const group of OWNER_GROUPS) groups.set(group, [])
-    for (const task of [...tasks].sort((a, b) => a.sortOrder - b.sortOrder)) {
+    for (const task of sortTasksForDisplay(tasks)) {
       groups.get(getOwnerGroup(task.owner))!.push(task)
     }
     return OWNER_GROUPS.map((owner) => ({

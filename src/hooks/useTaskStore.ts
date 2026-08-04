@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { seedTasks } from '../data/seedTasks'
 import { migrateTaskOwners } from '../domain/owners'
+import { sortTasksForDisplay } from '../domain/taskSort'
 import type { Task } from '../domain/types'
 import {
   createSupabase,
@@ -19,7 +20,7 @@ export type SyncState = 'local' | 'connecting' | 'synced' | 'offline' | 'error'
 const REALTIME_REFRESH_DELAY_MS = 50
 
 function sortTasks(tasks: Task[]): Task[] {
-  return [...tasks].sort((a, b) => a.sortOrder - b.sortOrder)
+  return sortTasksForDisplay(tasks)
 }
 
 function getErrorMessage(error: unknown): string {

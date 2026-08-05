@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, Flag, Save, Trash2, X } from 'lucide-react'
+import { CalendarDays, Check, Flag, Save, Trash2, X } from 'lucide-react'
 import { TASK_CATEGORIES, CATEGORY_LABELS } from '../domain/categories'
 import { normalizeOwner, TASK_OWNERS, type TaskOwner } from '../domain/owners'
 import type { Task, TaskCategory, TaskType } from '../domain/types'
@@ -33,6 +33,13 @@ function makeDraft(task: Task | null, initialDate: string, nextSortOrder: number
       updatedAt: now,
     }
   )
+}
+
+function formatDateDisplay(value: string) {
+  if (!value) return '—'
+  const [year, month, day] = value.split('-')
+  if (!year || !month || !day) return value
+  return `${year}/${month}/${day}`
 }
 
 export function TaskDialog({
@@ -221,21 +228,41 @@ export function TaskDialog({
           <div className="date-range-grid field-delay-3">
             <label className="field date-field">
               <span>开始日期</span>
-              <input
-                type="date"
-                value={draft.startDate}
-                onChange={(event) => updateStartDate(event.target.value)}
-              />
+              <span className="date-field-control">
+                <span className="date-field-display" aria-hidden="true">
+                  <span className="date-field-text">{formatDateDisplay(draft.startDate)}</span>
+                  <CalendarDays size={16} className="date-field-icon" />
+                </span>
+                <input
+                  type="date"
+                  aria-label="开始日期"
+                  value={draft.startDate}
+                  onChange={(event) => updateStartDate(event.target.value)}
+                />
+              </span>
             </label>
-            <label className="field date-field">
+            <label
+              className={`field date-field${
+                draft.isOngoing || draft.type === 'milestone' ? ' is-disabled' : ''
+              }`}
+            >
               <span>结束日期</span>
-              <input
-                type="date"
-                value={draft.endDate ?? ''}
-                min={draft.startDate}
-                disabled={draft.isOngoing || draft.type === 'milestone'}
-                onChange={(event) => updateEndDate(event.target.value)}
-              />
+              <span className="date-field-control">
+                <span className="date-field-display" aria-hidden="true">
+                  <span className="date-field-text">
+                    {formatDateDisplay(draft.endDate ?? '')}
+                  </span>
+                  <CalendarDays size={16} className="date-field-icon" />
+                </span>
+                <input
+                  type="date"
+                  aria-label="结束日期"
+                  value={draft.endDate ?? ''}
+                  min={draft.startDate}
+                  disabled={draft.isOngoing || draft.type === 'milestone'}
+                  onChange={(event) => updateEndDate(event.target.value)}
+                />
+              </span>
             </label>
           </div>
 

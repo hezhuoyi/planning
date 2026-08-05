@@ -63,6 +63,21 @@ export function initTheme(): ThemeId {
 
 export function setTheme(id: ThemeId): ThemeId {
   const next = getTheme(id).id
+  if (typeof document !== 'undefined') {
+    document.querySelectorAll('.theme-fade-overlay').forEach((node) => node.remove())
+    const root = document.documentElement
+    const surface =
+      getComputedStyle(root).getPropertyValue('--surface').trim() ||
+      root.style.backgroundColor
+    const overlay = document.createElement('div')
+    overlay.className = 'theme-fade-overlay'
+    if (surface) overlay.style.background = surface
+    document.body.appendChild(overlay)
+    requestAnimationFrame(() => {
+      overlay.classList.add('is-out')
+    })
+    window.setTimeout(() => overlay.remove(), 420)
+  }
   writeStoredThemeId(next)
   applyTheme(next)
   return next

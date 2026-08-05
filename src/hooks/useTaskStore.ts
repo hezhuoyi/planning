@@ -420,6 +420,7 @@ export function useTaskStore() {
     syncState,
     syncError,
     isConfigured: Boolean(config),
+    isHydrating: cacheOwner === undefined,
     unlockWithPasscode,
     lockSync,
     refreshRemote,

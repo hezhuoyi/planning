@@ -1,12 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { addMonths, addWeeks, endOfWeek, format, parse, startOfMonth, startOfWeek } from 'date-fns'
 import {
   CalendarDays,
+  Check,
   ChevronLeft,
   ChevronRight,
   Cloud,
   CloudOff,
+  LoaderCircle,
   LocateFixed,
   Plus,
 } from 'lucide-react'
@@ -26,6 +28,40 @@ const SYNC_LABELS: Record<SyncState, string> = {
   offline: '离线',
   error: '同步异常',
 }
+
+const CONFETTI_COLORS = [
+  'var(--primary)',
+  'var(--accent)',
+  'var(--cat-growth)',
+  'var(--cat-home)',
+  'var(--cat-travel)',
+  'var(--cat-career)',
+]
+
+const CONFETTI_PIECES = Array.from({ length: 32 }, (_, index) => {
+  const column = index % 16
+  const row = Math.floor(index / 16)
+  return {
+    id: index,
+    x: `${6 + column * 5.8 + (row % 2) * 2.4}%`,
+    delay: `${index * 16}ms`,
+    duration: `${1.15 + (index % 5) * 0.12}s`,
+    dx: `${(index % 2 === 0 ? -1 : 1) * (12 + (index % 7) * 8)}px`,
+    spin: `${(index % 2 === 0 ? 1 : -1) * (540 + (index % 6) * 90)}deg`,
+    width: `${6 + (index % 4)}px`,
+    height: `${9 + (index % 5)}px`,
+    color: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
+    shape: index % 5 === 0 ? 'round' : index % 3 === 0 ? 'strip' : 'rect',
+  }
+})
+
+const THEME_PARTICLES = Array.from({ length: 12 }, (_, index) => ({
+  id: index,
+  left: `${8 + ((index * 17) % 84)}%`,
+  delay: `${index * 0.45}s`,
+  duration: `${7 + (index % 5)}s`,
+  size: `${4 + (index % 4)}px`,
+}))
 
 function formatAllRangeLabel(start: Date, end: Date) {
   const sameYear = start.getFullYear() === end.getFullYear()
@@ -49,6 +85,7 @@ function App() {
     isConfigured,
     unlockWithPasscode,
     lockSync,
+    isHydrating,
   } = useTaskStore()
   const { themeId, setTheme } = useTheme()
   const [focusTodayToken, setFocusTodayToken] = useState(0)
@@ -62,6 +99,28 @@ function App() {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false)
   const [syncDialogOpen, setSyncDialogOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [confettiKey, setConfettiKey] = useState<number | null>(null)
+  const [enteringTaskId, setEnteringTaskId] = useState<string | null>(null)
+  const [exitingTaskIds, setExitingTaskIds] = useState<string[]>([])
+  const monthInputRef = useRef<HTMLInputElement>(null)
+  const toastTimerRef = useRef<number | null>(null)
+  const deleteTimersRef = useRef<Map<string, number>>(new Map())
+  const confettiTimerRef = useRef<number | null>(null)
+  const enterTimerRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    const toastTimer = toastTimerRef
+    const confettiTimer = confettiTimerRef
+    const enterTimer = enterTimerRef
+    const deleteTimers = deleteTimersRef
+    return () => {
+      if (toastTimer.current !== null) window.clearTimeout(toastTimer.current)
+      if (confettiTimer.current !== null) window.clearTimeout(confettiTimer.current)
+      if (enterTimer.current !== null) window.clearTimeout(enterTimer.current)
+      deleteTimers.current.forEach((timer) => window.clearTimeout(timer))
+      deleteTimers.current.clear()
+    }
+  }, [])
 
   const today = useMemo(() => new Date(), [])
   const viewAnchor = viewScope === 'week' ? viewWeek : viewMonth
@@ -76,8 +135,34 @@ function App() {
 
   const showToast = (message: string) => {
     setToast(message)
-    window.setTimeout(() => setToast(null), 1800)
+    if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current)
+    toastTimerRef.current = window.setTimeout(() => {
+      toastTimerRef.current = null
+      setToast(null)
+    }, 1800)
   }
+
+  const burstConfetti = () => {
+    const key = Date.now()
+    setConfettiKey(key)
+    if (confettiTimerRef.current !== null) window.clearTimeout(confettiTimerRef.current)
+    confettiTimerRef.current = window.setTimeout(() => {
+      confettiTimerRef.current = null
+      setConfettiKey((current) => (current === key ? null : current))
+    }, 1700)
+  }
+
+  const showSkeleton =
+    isHydrating || (unlocked && syncState === 'connecting' && tasks.length === 0)
+
+  const syncStatusClass =
+    unlocked && syncState === 'connecting'
+      ? 'is-syncing'
+      : unlocked && syncState === 'synced'
+        ? 'is-synced'
+        : unlocked && (syncState === 'offline' || syncState === 'error')
+          ? 'is-sync-bad'
+          : ''
 
   const openNewTask = (date = format(new Date(), 'yyyy-MM-dd')) => {
     setEditingTask(null)
@@ -95,10 +180,28 @@ function App() {
   const syncLabel = unlocked ? SYNC_LABELS[syncState] : SYNC_LABELS.local
   const needsSyncAttention =
     isConfigured &&
-    (!unlocked || syncState === 'offline' || syncState === 'error')
+    (!unlocked || syncState === 'offline' || syncState === 'error' || syncState === 'connecting')
 
   return (
     <main className="app-shell">
+      <div className="theme-particles" aria-hidden="true">
+        {THEME_PARTICLES.map((particle) => (
+          <span
+            key={particle.id}
+            className="theme-particle"
+            style={
+              {
+                left: particle.left,
+                width: particle.size,
+                height: particle.size,
+                animationDelay: particle.delay,
+                animationDuration: particle.duration,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
+
       <header className="topbar">
         <button
           type="button"
@@ -117,11 +220,18 @@ function App() {
           </span>
           <div>
             <h1>Planning</h1>
-            <p>
+            <p className={`brand-status ${syncStatusClass}`}>
               {format(today, 'M月d日')}
-              {unlocked && syncState !== 'offline' && syncState !== 'error'
-                ? ' · 已同步'
-                : ''}
+              {unlocked && syncState === 'connecting'
+                ? ' · 同步中'
+                : unlocked && syncState !== 'offline' && syncState !== 'error'
+                  ? ' · 已同步'
+                  : unlocked
+                    ? ` · ${syncLabel}`
+                    : ''}
+              {unlocked && syncState === 'synced' ? (
+                <Check size={12} className="brand-sync-check" aria-hidden="true" />
+              ) : null}
             </p>
           </div>
         </button>
@@ -157,7 +267,9 @@ function App() {
               onClick={() => setSyncDialogOpen(true)}
               title={unlocked ? syncLabel : '输入口令开启云同步'}
             >
-              {unlocked && (syncState === 'offline' || syncState === 'error') ? (
+              {unlocked && syncState === 'connecting' ? (
+                <LoaderCircle size={15} className="sync-spin" aria-hidden="true" />
+              ) : unlocked && (syncState === 'offline' || syncState === 'error') ? (
                 <CloudOff size={15} aria-hidden="true" />
               ) : (
                 <Cloud size={15} aria-hidden="true" />
@@ -170,7 +282,13 @@ function App() {
 
       <section className="plan-summary" aria-label="计划概览">
         <div className="summary-toolbar">
-          <div className="summary-switch" role="tablist" aria-label="时间轴范围">
+          <div
+            className="summary-switch"
+            role="tablist"
+            aria-label="时间轴范围"
+            data-scope={viewScope}
+          >
+            <span className="summary-switch-pill" aria-hidden="true" />
             <button
               type="button"
               role="tab"
@@ -218,7 +336,7 @@ function App() {
               >
                 <ChevronLeft size={16} aria-hidden="true" />
               </button>
-              <strong>
+              <strong className="month-nav-label">
                 {format(viewWeek, 'M月d日')}
                 –
                 {format(endOfWeek(viewWeek, { weekStartsOn: 1 }), 'M月d日')}
@@ -246,15 +364,37 @@ function App() {
               >
                 <ChevronLeft size={16} aria-hidden="true" />
               </button>
-              <label className="month-nav-picker">
-                <span>{format(viewMonth, 'yyyy年M月')}</span>
-                <input
-                  key={format(viewMonth, 'yyyy-MM')}
-                  type="month"
-                  defaultValue={format(viewMonth, 'yyyy-MM')}
+              <div className="month-nav-picker-wrap">
+                <button
+                  type="button"
+                  className="month-nav-picker"
                   aria-label="选择月份"
-                  onBlur={(event) => {
-                    const value = event.currentTarget.value
+                  onClick={() => {
+                    const input = monthInputRef.current
+                    if (!input) return
+                    try {
+                      if (typeof input.showPicker === 'function') {
+                        input.showPicker()
+                        return
+                      }
+                    } catch {
+                      // fall through
+                    }
+                    input.focus()
+                    input.click()
+                  }}
+                >
+                  <span className="month-nav-label">{format(viewMonth, 'yyyy年M月')}</span>
+                </button>
+                <input
+                  ref={monthInputRef}
+                  type="month"
+                  className="month-nav-input"
+                  value={format(viewMonth, 'yyyy-MM')}
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  onChange={(event) => {
+                    const value = event.target.value
                     if (!value) return
                     const next = startOfMonth(parse(value, 'yyyy-MM', new Date()))
                     setViewMonth((current) =>
@@ -262,7 +402,7 @@ function App() {
                     )
                   }}
                 />
-              </label>
+              </div>
               <button
                 type="button"
                 className="icon-button"
@@ -277,13 +417,16 @@ function App() {
           {viewScope === 'all' && (
             <div className="month-nav is-readonly" aria-label="整体时间范围">
               <span className="month-nav-spacer" aria-hidden="true" />
-              <strong>{allRangeLabel}</strong>
+              <strong className="month-nav-label">{allRangeLabel}</strong>
               <span className="month-nav-spacer" aria-hidden="true" />
             </div>
           )}
         </div>
 
-        <div className="summary-copy">
+        <div
+          className="summary-copy"
+          key={`${viewScope}-${format(viewAnchor, 'yyyy-MM-dd')}`}
+        >
           <p className="summary-kicker">{summary.kicker}</p>
           <div className="summary-main">
             <h2>{summary.headline}</h2>
@@ -329,8 +472,15 @@ function App() {
         viewScope={viewScope}
         viewMonth={viewAnchor}
         focusTodayToken={focusTodayToken}
+        enteringTaskId={enteringTaskId}
+        exitingTaskIds={exitingTaskIds}
+        showSkeleton={showSkeleton}
         onEdit={openEditTask}
         onCreateAt={openNewTask}
+        onReschedule={(task) => {
+          void saveTask(task)
+          showToast('已调整日期')
+        }}
       />
 
       {taskDialogOpen && (
@@ -340,14 +490,31 @@ function App() {
           nextSortOrder={nextSortOrder}
           onClose={() => setTaskDialogOpen(false)}
           onSave={(task) => {
+            const isNew = !editingTask
             void saveTask(task)
             const justCompleted = Boolean(task.completedAt) && !editingTask?.completedAt
+            if (justCompleted) burstConfetti()
+            if (isNew) {
+              setEnteringTaskId(task.id)
+              if (enterTimerRef.current !== null) window.clearTimeout(enterTimerRef.current)
+              enterTimerRef.current = window.setTimeout(() => {
+                enterTimerRef.current = null
+                setEnteringTaskId((current) => (current === task.id ? null : current))
+              }, 700)
+            }
             showToast(
               justCompleted ? '完成啦' : editingTask ? '已更新安排' : '记好啦',
             )
           }}
           onDelete={(id) => {
-            void deleteTask(id)
+            if (deleteTimersRef.current.has(id)) return
+            setExitingTaskIds((ids) => (ids.includes(id) ? ids : [...ids, id]))
+            const timer = window.setTimeout(() => {
+              deleteTimersRef.current.delete(id)
+              void deleteTask(id)
+              setExitingTaskIds((ids) => ids.filter((item) => item !== id))
+            }, 360)
+            deleteTimersRef.current.set(id, timer)
             showToast('已删除')
           }}
         />
@@ -377,9 +544,44 @@ function App() {
 
       {toast &&
         createPortal(
-          <button className="toast" type="button" onClick={() => setToast(null)}>
+          <button
+            className={`toast${toast === '完成啦' ? ' is-celebrate' : ''}`}
+            type="button"
+            onClick={() => setToast(null)}
+          >
             {toast}
           </button>,
+          document.body,
+        )}
+
+      {confettiKey !== null &&
+        createPortal(
+          <div className="confetti-layer" key={confettiKey} aria-hidden="true">
+            {CONFETTI_PIECES.map((piece) => (
+              <span
+                key={piece.id}
+                className={`confetti-piece${
+                  piece.shape === 'round'
+                    ? ' is-round'
+                    : piece.shape === 'strip'
+                      ? ' is-strip'
+                      : ''
+                }`}
+                style={
+                  {
+                    '--x': piece.x,
+                    '--delay': piece.delay,
+                    '--dur': piece.duration,
+                    '--dx': piece.dx,
+                    '--spin': piece.spin,
+                    '--w': piece.width,
+                    '--h': piece.height,
+                    '--c': piece.color,
+                  } as CSSProperties
+                }
+              />
+            ))}
+          </div>,
           document.body,
         )}
     </main>

@@ -7,6 +7,7 @@ import {
   getTimelineRange,
   getFullTimelineRange,
   getPlanSummary,
+  shiftTaskByDays,
 } from './timeline'
 import type { Task } from './types'
 
@@ -239,5 +240,27 @@ describe('getTaskBarClip', () => {
 
     expect(clip.clipStart).toBe(false)
     expect(clip.clipEnd).toBe(true)
+  })
+})
+
+describe('shiftTaskByDays', () => {
+  it('returns the same task when days is 0', () => {
+    expect(shiftTaskByDays(baseTask, 0)).toBe(baseTask)
+  })
+
+  it('shifts start and end dates together', () => {
+    const shifted = shiftTaskByDays(baseTask, 3)
+    expect(shifted.startDate).toBe('2026-08-13')
+    expect(shifted.endDate).toBe('2026-08-23')
+    expect(shifted.id).toBe(baseTask.id)
+  })
+
+  it('keeps ongoing tasks without an end date', () => {
+    const shifted = shiftTaskByDays(
+      { ...baseTask, endDate: null, isOngoing: true },
+      -2,
+    )
+    expect(shifted.startDate).toBe('2026-08-08')
+    expect(shifted.endDate).toBeNull()
   })
 })

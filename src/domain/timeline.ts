@@ -1,9 +1,11 @@
 import {
+  addDays,
   addMonths,
   differenceInCalendarDays,
   endOfDay,
   endOfMonth,
   endOfWeek,
+  format,
   isAfter,
   isBefore,
   max,
@@ -259,5 +261,18 @@ export function getTaskBarClip(
   return {
     clipStart: isBefore(rawStart, rangeStart),
     clipEnd: continuesPastEnd || (rawEnd !== null && isAfter(rawEnd, rangeEnd)),
+  }
+}
+
+/** 整段平移任务日期（拖拽改期）；days=0 时返回原对象 */
+export function shiftTaskByDays(task: Task, days: number): Task {
+  if (!days) return task
+  const start = addDays(parseISO(task.startDate), days)
+  const end = task.endDate ? addDays(parseISO(task.endDate), days) : null
+  return {
+    ...task,
+    startDate: format(start, 'yyyy-MM-dd'),
+    endDate: end ? format(end, 'yyyy-MM-dd') : null,
+    updatedAt: new Date().toISOString(),
   }
 }

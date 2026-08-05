@@ -52,6 +52,7 @@ export function TaskDialog({
 }: TaskDialogProps) {
   const [draft, setDraft] = useState(() => makeDraft(task, initialDate, nextSortOrder))
   const [error, setError] = useState('')
+  const [errorField, setErrorField] = useState<'title' | 'endDate' | 'owner' | ''>('')
   const [shakeToken, setShakeToken] = useState(0)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const { leaving, requestClose } = useDialogMotion(onClose)
@@ -60,11 +61,13 @@ export function TaskDialog({
   useEffect(() => {
     setDraft(makeDraft(task, initialDate, nextSortOrder))
     setError('')
+    setErrorField('')
     setConfirmDelete(false)
   }, [initialDate, nextSortOrder, task])
 
-  const fail = (message: string) => {
+  const fail = (message: string, field: 'title' | 'endDate' | 'owner' | '' = '') => {
     setError(message)
+    setErrorField(field)
     setShakeToken((value) => value + 1)
   }
 
@@ -78,16 +81,18 @@ export function TaskDialog({
       return { ...current, startDate, endDate }
     })
     setError('')
+    setErrorField('')
   }
 
   const updateEndDate = (endDate: string) => {
     if (endDate && endDate < draft.startDate) {
-      fail('结束日期不能早于开始日期')
+      fail('结束日期不能早于开始日期', 'endDate')
       setDraft((current) => ({ ...current, endDate: current.startDate }))
       return
     }
     setDraft((current) => ({ ...current, endDate }))
     setError('')
+    setErrorField('')
   }
 
   const setType = (type: TaskType) => {
@@ -103,21 +108,21 @@ export function TaskDialog({
     event.preventDefault()
     if (confirmDelete) return
     if (!draft.title.trim()) {
-      fail('请输入任务名称')
+      fail('请输入任务名称', 'title')
       return
     }
     if (draft.type === 'range' && !draft.isOngoing && !draft.endDate) {
-      fail('请设置结束日期')
+      fail('请设置结束日期', 'endDate')
       return
     }
     if (!draft.isOngoing && draft.endDate && draft.endDate < draft.startDate) {
-      fail('结束日期不能早于开始日期')
+      fail('结束日期不能早于开始日期', 'endDate')
       return
     }
 
     const owner = normalizeOwner(draft.owner)
     if (!owner) {
-      fail('请选择负责人')
+      fail('请选择负责人', 'owner')
       return
     }
 
@@ -195,13 +200,16 @@ export function TaskDialog({
           </div>
         ) : (
         <form className={shakeToken ? 'is-shaking' : undefined} key={shakeToken} onSubmit={submit}>
-          <label className="field full-field field-delay-1">
+          <label className={`field full-field field-delay-1${errorField === 'title' ? ' is-invalid' : ''}`}>
             <span>任务名称</span>
             <input
               autoFocus={!task}
               enterKeyHint="done"
               value={draft.title}
-              onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+              onChange={(event) => {
+                setDraft({ ...draft, title: event.target.value })
+                if (errorField === 'title') setErrorField('')
+              }}
               placeholder="例如：准备三亚行程"
             />
           </label>
@@ -244,7 +252,7 @@ export function TaskDialog({
             <label
               className={`field date-field${
                 draft.isOngoing || draft.type === 'milestone' ? ' is-disabled' : ''
-              }`}
+              }${errorField === 'endDate' ? ' is-invalid' : ''}`}
             >
               <span>结束日期</span>
               <span className="date-field-control">
@@ -267,16 +275,17 @@ export function TaskDialog({
           </div>
 
           <div className="form-grid field-delay-3">
-            <label className="field">
+            <label className={`field${errorField === 'owner' ? ' is-invalid' : ''}`}>
               <span>负责人</span>
               <select
                 value={normalizeOwner(draft.owner) ?? ''}
-                onChange={(event) =>
+                onChange={(event) => {
                   setDraft({
                     ...draft,
                     owner: (event.target.value || null) as TaskOwner | null,
                   })
-                }
+                  if (errorField === 'owner') setErrorField('')
+                }}
               >
                 <option value="" disabled>
                   请选择

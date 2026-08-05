@@ -1,7 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 const CLOSE_MS = 240
-const SCROLLABLE_SELECTOR = '.task-dialog form, .sync-section, .delete-confirm'
+const SCROLLABLE_SELECTOR =
+  '.task-dialog form, .delete-confirm, .dialog-body'
+
+function findScrollParent(target: Element): HTMLElement | null {
+  let node: HTMLElement | null =
+    target.closest(SCROLLABLE_SELECTOR) instanceof HTMLElement
+      ? (target.closest(SCROLLABLE_SELECTOR) as HTMLElement)
+      : null
+
+  while (node) {
+    const { scrollHeight, clientHeight } = node
+    if (scrollHeight > clientHeight + 1) return node
+
+    const parentMatch = node.parentElement?.closest(SCROLLABLE_SELECTOR)
+    node = parentMatch instanceof HTMLElement ? parentMatch : null
+  }
+
+  return null
+}
 
 /** 弹窗关闭时先播退出动画，再真正卸载 */
 export function useDialogMotion(onClose: () => void) {
@@ -38,7 +56,6 @@ export function useDialogMotion(onClose: () => void) {
       bodyTouchAction: body.style.touchAction,
     }
 
-    // 页面实际滚动在 html；iOS 还需 fixed 锁住视觉位置
     html.style.overflow = 'hidden'
     body.style.overflow = 'hidden'
     body.style.position = 'fixed'
@@ -61,7 +78,7 @@ export function useDialogMotion(onClose: () => void) {
         return
       }
 
-      const scrollParent = target.closest(SCROLLABLE_SELECTOR)
+      const scrollParent = findScrollParent(target)
       if (!(scrollParent instanceof HTMLElement)) {
         event.preventDefault()
         return
@@ -79,7 +96,6 @@ export function useDialogMotion(onClose: () => void) {
       const atTop = scrollTop <= 0
       const atBottom = scrollTop + clientHeight >= scrollHeight - 1
 
-      // 顶/底继续拖时阻断链式滚动到背景
       if ((atTop && deltaY > 0) || (atBottom && deltaY < 0)) {
         event.preventDefault()
       }

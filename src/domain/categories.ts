@@ -6,11 +6,11 @@ export const TASK_CATEGORIES: Array<{
   color: string
   soft: string
 }> = [
-  { value: 'health', label: '健康', color: '#4f9d8a', soft: '#e3f2eb' },
-  { value: 'growth', label: '成长', color: '#5b86c7', soft: '#e8f0fb' },
-  { value: 'career', label: '事业', color: '#8a74b8', soft: '#efeaf8' },
-  { value: 'home', label: '生活', color: '#c9895c', soft: '#faf0e4' },
-  { value: 'travel', label: '出行', color: '#d36b7a', soft: '#fceced' },
+  { value: 'health', label: '健康', color: '#1f9ea8', soft: '#e3f5f6' },
+  { value: 'home', label: '生活', color: '#8f8b7c', soft: '#f2f0eb' },
+  { value: 'growth', label: '成长', color: '#5a6fc4', soft: '#eaedf8' },
+  { value: 'career', label: '事业', color: '#8a65c0', soft: '#f0eaf8' },
+  { value: 'travel', label: '出行', color: '#d45a63', soft: '#fcebec' },
 ]
 
 export const CATEGORY_LABELS: Record<TaskCategory, string> = Object.fromEntries(

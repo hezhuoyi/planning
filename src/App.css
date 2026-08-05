@@ -13,13 +13,13 @@
   --primary-soft: #ffe8d6;
   --accent: #5d9b82;
   --accent-soft: #e3f2eb;
-  --danger: #d36b7a;
+  --danger: #d45a63;
   --lane-height: 56px;
-  --cat-health: #4f9d8a;
-  --cat-growth: #5b86c7;
-  --cat-career: #8a74b8;
-  --cat-home: #c9895c;
-  --cat-travel: #d36b7a;
+  --cat-health: #1f9ea8;
+  --cat-growth: #5a6fc4;
+  --cat-career: #8a65c0;
+  --cat-home: #8f8b7c;
+  --cat-travel: #d45a63;
   --radius: 18px;
   --shadow-soft: 0 12px 32px rgb(130 90 55 / 11%);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -1404,18 +1404,18 @@
 }
 
 .owner-group[data-owner='王慧云'] {
-  --owner-mark-bg: color-mix(in srgb, #f0b4c0 42%, var(--panel));
+  --owner-mark-bg: color-mix(in srgb, #f3b8c6 44%, var(--panel));
   --owner-mark-color: #c45f78;
 }
 
 .owner-group[data-owner='何卓逸'] {
-  --owner-mark-bg: color-mix(in srgb, #9bb8d4 42%, var(--panel));
-  --owner-mark-color: #4d7194;
+  --owner-mark-bg: color-mix(in srgb, #a3c0db 44%, var(--panel));
+  --owner-mark-color: #4a7599;
 }
 
 .owner-group[data-owner='一起'] {
-  --owner-mark-bg: color-mix(in srgb, #c4b0dc 42%, var(--panel));
-  --owner-mark-color: #7a5f9a;
+  --owner-mark-bg: color-mix(in srgb, #e6d09a 48%, var(--panel));
+  --owner-mark-color: #b08a3a;
 }
 
 .owner-group[data-owner='未指定'] {

@@ -11,15 +11,15 @@ export interface ThemeDefinition {
 
 /** Category colors stay fixed across themes. */
 const SHARED_CATEGORY_TOKENS = {
-  '--cat-health': '#4f9d8a',
-  '--cat-growth': '#5b86c7',
-  '--cat-career': '#8a74b8',
-  '--cat-home': '#c9895c',
-  '--cat-travel': '#d36b7a',
+  '--cat-health': '#1f9ea8',
+  '--cat-growth': '#5a6fc4',
+  '--cat-career': '#8a65c0',
+  '--cat-home': '#8f8b7c',
+  '--cat-travel': '#d45a63',
   '--lane-height': '56px',
   '--radius': '18px',
   '--ease-out': 'cubic-bezier(0.22, 1, 0.36, 1)',
-  '--danger': '#d36b7a',
+  '--danger': '#d45a63',
 }
 
 export const THEMES: ThemeDefinition[] = [

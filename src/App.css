@@ -701,18 +701,18 @@
   position: relative;
   flex-shrink: 0;
   gap: 2px;
-  padding: 3px;
+  padding: 2px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--line) 70%, var(--primary-soft));
 }
 
 .summary-switch-pill {
   position: absolute;
-  top: 3px;
-  bottom: 3px;
-  left: 3px;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
   z-index: 0;
-  width: calc((100% - 6px) / 3);
+  width: calc((100% - 4px) / 3);
   border-radius: 999px;
   background: var(--panel);
   box-shadow: 0 2px 8px color-mix(in srgb, var(--ink) 10%, transparent);
@@ -735,9 +735,9 @@
 .summary-switch button {
   position: relative;
   z-index: 1;
-  min-height: 28px;
-  min-width: 40px;
-  padding: 0 10px;
+  min-height: 26px;
+  min-width: 48px;
+  padding: 0 14px;
   border: 0;
   border-radius: 999px;
   color: var(--muted);
@@ -765,12 +765,14 @@
   min-width: 0;
   width: max-content;
   max-width: 100%;
+  min-height: 30px;
   margin-left: auto;
   padding: 2px;
   justify-content: center;
   overflow: visible;
   border-radius: 999px;
   background: color-mix(in srgb, var(--line) 70%, var(--primary-soft));
+  box-sizing: border-box;
 }
 
 .month-nav-picker-wrap {
@@ -813,7 +815,7 @@
   justify-content: center;
   gap: 2px;
   min-width: 0;
-  min-height: 28px;
+  min-height: 26px;
   padding-inline: 6px 4px;
   border: 0;
   border-radius: 999px;
@@ -846,12 +848,14 @@
 .month-picker-popover {
   position: fixed;
   z-index: 80;
-  width: min(240px, calc(100vw - 24px));
-  padding: 10px;
+  width: min(228px, calc(100vw - 28px));
+  padding: 12px;
   border: 1px solid var(--line-strong);
   border-radius: 16px;
   background: var(--panel);
-  box-shadow: var(--shadow-soft);
+  box-shadow:
+    0 10px 28px color-mix(in srgb, var(--ink) 12%, transparent),
+    0 1px 0 color-mix(in srgb, var(--panel) 80%, white);
   transform: translateX(-50%);
   animation: month-picker-in 180ms var(--ease-out) both;
 }
@@ -860,38 +864,42 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
-  margin-bottom: 8px;
+  gap: 6px;
+  margin-bottom: 10px;
 }
 
 .month-picker-year strong {
   min-width: 0;
   font-size: 14px;
   font-weight: 800;
+  letter-spacing: 0.01em;
 }
 
 .month-picker-year .icon-button {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border: 0;
   border-radius: 999px;
+  color: var(--ink);
   background: color-mix(in srgb, var(--line) 55%, transparent);
 }
 
 .month-picker-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  gap: 8px;
 }
 
 .month-picker-grid button {
-  min-height: 34px;
+  min-height: 36px;
+  padding: 0 4px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 11px;
   color: var(--ink);
-  background: color-mix(in srgb, var(--line) 45%, transparent);
-  font-size: 13px;
+  background: color-mix(in srgb, var(--line) 40%, transparent);
+  font-size: 12px;
   font-weight: 700;
+  line-height: 1;
   cursor: pointer;
   transition:
     background 140ms var(--ease-out),
@@ -926,8 +934,8 @@
 }
 
 .month-nav .icon-button {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -2792,15 +2800,16 @@ button:focus-visible {
 
   .summary-switch button {
     min-height: 26px;
-    min-width: 32px;
-    padding-inline: 7px;
-    font-size: 12px;
+    min-width: 44px;
+    padding-inline: 12px;
+    font-size: 13px;
   }
 
   .month-nav {
     flex: 0 1 auto;
     width: max-content;
-    max-width: calc(100% - 118px);
+    max-width: calc(100% - 130px);
+    min-height: 30px;
     justify-content: center;
     margin-left: auto;
   }

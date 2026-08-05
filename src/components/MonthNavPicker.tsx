@@ -49,9 +49,14 @@ export function MonthNavPicker({ value, onChange }: MonthNavPickerProps) {
       const button = buttonRef.current
       if (!button) return
       const rect = button.getBoundingClientRect()
+      const popoverWidth = Math.min(228, window.innerWidth - 28)
+      const half = popoverWidth / 2
+      const centerX = rect.left + rect.width / 2
+      const minCenter = 14 + half
+      const maxCenter = window.innerWidth - 14 - half
       setPopoverPos({
-        top: rect.bottom + 4,
-        left: rect.left + rect.width / 2,
+        top: rect.bottom + 6,
+        left: Math.min(maxCenter, Math.max(minCenter, centerX)),
       })
     }
 

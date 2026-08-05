@@ -749,7 +749,7 @@
   gap: 2px;
   margin-left: auto;
   padding: 2px;
-  overflow: hidden;
+  overflow: visible;
   border-radius: 999px;
   background: color-mix(in srgb, var(--line) 70%, var(--primary-soft));
 }
@@ -759,13 +759,11 @@
   display: grid;
   place-items: center;
   min-width: 7.5em;
-  min-height: 28px;
-  padding-inline: 4px;
-  overflow: hidden;
-  border-radius: 999px;
+  z-index: 2;
 }
 
 .month-nav strong,
+.month-nav-picker,
 .month-nav-label {
   min-width: 7.5em;
   color: var(--ink);
@@ -780,41 +778,104 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  pointer-events: none;
 }
 
-/* 透明原生 month 盖在文案上，直接点选打开系统选择器（比离屏 showPicker 更稳） */
-.month-nav-input {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
+.month-nav-picker {
+  display: grid;
+  place-items: center;
+  min-height: 28px;
+  padding-inline: 4px;
   border: 0;
-  opacity: 0;
-  cursor: pointer;
-  color: transparent;
+  border-radius: 999px;
   background: transparent;
-  font-size: 16px;
-  appearance: none;
-  -webkit-appearance: none;
-}
-
-.month-nav-input::-webkit-calendar-picker-indicator {
-  position: absolute;
-  inset: 0;
-  width: auto;
-  height: auto;
-  margin: 0;
-  padding: 0;
-  opacity: 0;
   cursor: pointer;
+  transition: background 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
 }
 
-.month-nav-picker-wrap:focus-within {
+.month-nav-picker:hover {
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+}
+
+.month-nav-picker:focus-visible,
+.month-nav-picker[aria-expanded='true'] {
   box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.month-picker-popover {
+  position: fixed;
+  z-index: 80;
+  width: min(240px, calc(100vw - 24px));
+  padding: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: var(--shadow-soft);
+  transform: translateX(-50%);
+  animation: month-picker-in 180ms var(--ease-out) both;
+}
+
+.month-picker-year {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.month-picker-year strong {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.month-picker-year .icon-button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--line) 55%, transparent);
+}
+
+.month-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.month-picker-grid button {
+  min-height: 34px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--line) 45%, transparent);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 140ms var(--ease-out),
+    border-color 140ms var(--ease-out),
+    color 140ms var(--ease-out);
+}
+
+.month-picker-grid button:hover {
+  background: color-mix(in srgb, var(--primary-soft) 70%, var(--panel));
+}
+
+.month-picker-grid button.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 35%, white);
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary-soft) 80%, var(--panel));
+}
+
+@keyframes month-picker-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 .gantt-canvas.is-week .period-block {

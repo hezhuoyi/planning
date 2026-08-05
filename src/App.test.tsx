@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { format } from 'date-fns'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -44,16 +44,19 @@ describe('Planning', () => {
     )
   })
 
-  it('can jump to a month from the month picker', () => {
+  it('can jump to a month from the month picker', async () => {
+    const user = userEvent.setup()
     render(<App />)
 
-    const monthInput = document.querySelector('.month-nav-input')
-    expect(monthInput).toBeTruthy()
-    fireEvent.change(monthInput as HTMLInputElement, {
-      target: { value: '2027-03' },
-    })
+    await user.click(screen.getByRole('button', { name: '选择月份' }))
+    expect(screen.getByRole('dialog', { name: '选择月份' })).toBeInTheDocument()
 
-    expect(screen.getByLabelText('切换月份')).toHaveTextContent('2027年3月')
+    await user.click(screen.getByRole('button', { name: '下一年' }))
+    await user.click(screen.getByRole('button', { name: '3月' }))
+
+    const nextYear = new Date().getFullYear() + 1
+    expect(screen.getByLabelText('切换月份')).toHaveTextContent(`${nextYear}年3月`)
+    expect(screen.queryByRole('dialog', { name: '选择月份' })).not.toBeInTheDocument()
   })
 
   it('opens a compact task form from the primary add action', async () => {

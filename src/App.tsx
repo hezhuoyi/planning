@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
-import { addMonths, addWeeks, endOfWeek, format, parse, startOfMonth, startOfWeek } from 'date-fns'
+import { addMonths, addWeeks, endOfWeek, format, startOfMonth, startOfWeek } from 'date-fns'
 import {
   CalendarDays,
   Check,
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import './App.css'
 import { GanttBoard } from './components/GanttBoard'
+import { MonthNavPicker } from './components/MonthNavPicker'
 import { SyncDialog } from './components/SyncDialog'
 import { TaskDialog } from './components/TaskDialog'
 import { getPlanSummary, getTimelineRange, type SummaryScope } from './domain/timeline'
@@ -363,25 +364,7 @@ function App() {
               >
                 <ChevronLeft size={16} aria-hidden="true" />
               </button>
-              <div className="month-nav-picker-wrap">
-                <span className="month-nav-label" aria-hidden="true">
-                  {format(viewMonth, 'yyyy年M月')}
-                </span>
-                <input
-                  type="month"
-                  className="month-nav-input"
-                  aria-label="选择月份"
-                  value={format(viewMonth, 'yyyy-MM')}
-                  onChange={(event) => {
-                    const value = event.target.value
-                    if (!value) return
-                    const next = startOfMonth(parse(value, 'yyyy-MM', new Date()))
-                    setViewMonth((current) =>
-                      current.getTime() === next.getTime() ? current : next,
-                    )
-                  }}
-                />
-              </div>
+              <MonthNavPicker value={viewMonth} onChange={setViewMonth} />
               <button
                 type="button"
                 className="icon-button"

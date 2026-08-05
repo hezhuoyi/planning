@@ -759,10 +759,14 @@
   display: grid;
   place-items: center;
   min-width: 7.5em;
+  min-height: 28px;
+  padding-inline: 4px;
+  overflow: hidden;
+  border-radius: 999px;
 }
 
 .month-nav strong,
-.month-nav-picker {
+.month-nav-label {
   min-width: 7.5em;
   color: var(--ink);
   font-size: 13px;
@@ -776,43 +780,41 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  pointer-events: none;
 }
 
-.month-nav-picker {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-height: 28px;
-  padding-inline: 4px;
-  overflow: hidden;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  cursor: pointer;
-  transition: background 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
-}
-
-.month-nav-picker:hover {
-  background: color-mix(in srgb, var(--panel) 70%, transparent);
-}
-
-.month-nav-picker:focus-visible {
-  box-shadow: 0 0 0 3px var(--focus-ring);
-}
-
-/* 挪出视口，避免原生 month 控件撑破胶囊并触发页面滚动 */
+/* 透明原生 month 盖在文案上，直接点选打开系统选择器（比离屏 showPicker 更稳） */
 .month-nav-input {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 1px;
-  height: 1px;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
   border: 0;
   opacity: 0;
-  pointer-events: none;
+  cursor: pointer;
+  color: transparent;
+  background: transparent;
+  font-size: 16px;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.month-nav-input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.month-nav-picker-wrap:focus-within {
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .gantt-canvas.is-week .period-block {

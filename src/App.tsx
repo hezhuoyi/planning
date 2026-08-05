@@ -102,7 +102,6 @@ function App() {
   const [confettiKey, setConfettiKey] = useState<number | null>(null)
   const [enteringTaskId, setEnteringTaskId] = useState<string | null>(null)
   const [exitingTaskIds, setExitingTaskIds] = useState<string[]>([])
-  const monthInputRef = useRef<HTMLInputElement>(null)
   const toastTimerRef = useRef<number | null>(null)
   const deleteTimersRef = useRef<Map<string, number>>(new Map())
   const confettiTimerRef = useRef<number | null>(null)
@@ -365,34 +364,14 @@ function App() {
                 <ChevronLeft size={16} aria-hidden="true" />
               </button>
               <div className="month-nav-picker-wrap">
-                <button
-                  type="button"
-                  className="month-nav-picker"
-                  aria-label="选择月份"
-                  onClick={() => {
-                    const input = monthInputRef.current
-                    if (!input) return
-                    try {
-                      if (typeof input.showPicker === 'function') {
-                        input.showPicker()
-                        return
-                      }
-                    } catch {
-                      // fall through
-                    }
-                    input.focus()
-                    input.click()
-                  }}
-                >
-                  <span className="month-nav-label">{format(viewMonth, 'yyyy年M月')}</span>
-                </button>
+                <span className="month-nav-label" aria-hidden="true">
+                  {format(viewMonth, 'yyyy年M月')}
+                </span>
                 <input
-                  ref={monthInputRef}
                   type="month"
                   className="month-nav-input"
+                  aria-label="选择月份"
                   value={format(viewMonth, 'yyyy-MM')}
-                  tabIndex={-1}
-                  aria-hidden="true"
                   onChange={(event) => {
                     const value = event.target.value
                     if (!value) return

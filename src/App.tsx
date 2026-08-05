@@ -105,7 +105,6 @@ function App() {
   const [enteringTaskId, setEnteringTaskId] = useState<string | null>(null)
   const [exitingTaskIds, setExitingTaskIds] = useState<string[]>([])
   const toastTimerRef = useRef<number | null>(null)
-  const openTipShownRef = useRef(false)
   const deleteTimersRef = useRef<Map<string, number>>(new Map())
   const confettiTimerRef = useRef<number | null>(null)
   const enterTimerRef = useRef<number | null>(null)
@@ -135,6 +134,8 @@ function App() {
     return formatAllRangeLabel(range.start, range.end)
   }, [tasks, today])
 
+  
+
   const showToast = (message: string) => {
     setToast(message)
     if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current)
@@ -158,13 +159,11 @@ function App() {
     isHydrating || (unlocked && syncState === 'connecting' && tasks.length === 0)
 
   useEffect(() => {
-    if (isHydrating || openTipShownRef.current) return
-    openTipShownRef.current = true
-    const now = new Date()
-    const tip = pickOpenTip(buildOpenTipContext(getPlanSummary(tasks, now, 'month'), now))
+    if (isHydrating) return
+    const tip = pickOpenTip(buildOpenTipContext(summary, today))
     writeRecentOpenTip(tip)
     setOpenTip(tip)
-  }, [isHydrating, tasks])
+  }, [isHydrating, summary, today])
 
   const openNewTask = (date = format(new Date(), 'yyyy-MM-dd')) => {
     setEditingTask(null)

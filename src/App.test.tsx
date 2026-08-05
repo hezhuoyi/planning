@@ -47,9 +47,11 @@ describe('Planning', () => {
   it('can jump to a month from the month picker', () => {
     render(<App />)
 
-    fireEvent.change(screen.getByLabelText('选择月份'), {
+    const monthInput = screen.getByLabelText('选择月份')
+    fireEvent.change(monthInput, {
       target: { value: '2027-03' },
     })
+    fireEvent.blur(monthInput)
 
     expect(screen.getByLabelText('切换月份')).toHaveTextContent('2027年3月')
   })

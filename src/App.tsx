@@ -253,11 +253,6 @@ function App() {
                   type="month"
                   defaultValue={format(viewMonth, 'yyyy-MM')}
                   aria-label="选择月份"
-                  onChange={(event) => {
-                    const value = event.target.value
-                    if (!value) return
-                    setViewMonth(startOfMonth(parse(value, 'yyyy-MM', new Date())))
-                  }}
                   onBlur={(event) => {
                     const value = event.currentTarget.value
                     if (!value) return

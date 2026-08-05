@@ -518,12 +518,6 @@ export function GanttBoard({
       .filter((group) => group.tasks.length > 0)
   }, [groupedTasks, range])
 
-  const createFromPointer = (event: React.MouseEvent<HTMLElement>) => {
-    const bounds = event.currentTarget.getBoundingClientRect()
-    const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width))
-    onCreateAt(format(addDays(range.start, Math.floor(ratio * totalDays)), 'yyyy-MM-dd'))
-  }
-
   const dayWidthPx = canvasWidth > 0 ? canvasWidth / totalDays : pixelsPerDay
 
   useEffect(() => {
@@ -715,7 +709,7 @@ export function GanttBoard({
                       ? '这个月还空着'
                       : '还没有安排'}
                 </p>
-                <p className="gantt-empty-copy">双击时间轴，或点右上角「新增」记一件事</p>
+                <p className="gantt-empty-copy">点右上角「新增」，或下方按钮记一件事</p>
                 <button
                   className="button primary-button gantt-empty-action"
                   type="button"
@@ -779,11 +773,7 @@ export function GanttBoard({
                           ? milestoneCenter > 72
                           : false
                       return (
-                        <div
-                          className="gantt-lane"
-                          key={task.id}
-                          onDoubleClick={createFromPointer}
-                        >
+                        <div className="gantt-lane" key={task.id}>
                           <TaskMarkButton
                             task={task}
                             status={status}
@@ -817,13 +807,6 @@ export function GanttBoard({
                 )
               })
             )}
-
-            <button
-              className="quick-lane"
-              type="button"
-              onDoubleClick={createFromPointer}
-              aria-label="双击时间轴创建事项"
-            />
           </div>
         </div>
       </div>

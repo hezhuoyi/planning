@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom'
 import { addMonths, addWeeks, endOfWeek, format, startOfMonth, startOfWeek } from 'date-fns'
 import {
   CalendarDays,
-  Check,
   ChevronLeft,
   ChevronRight,
   Cloud,
@@ -18,6 +17,7 @@ import { MonthNavPicker } from './components/MonthNavPicker'
 import { SyncDialog } from './components/SyncDialog'
 import { TaskDialog } from './components/TaskDialog'
 import { getPlanSummary, getTimelineRange, type SummaryScope } from './domain/timeline'
+import { buildOpenTipContext, pickOpenTip, writeRecentOpenTip } from './domain/openTips'
 import type { Task } from './domain/types'
 import { useTaskStore, type SyncState } from './hooks/useTaskStore'
 import { useTheme } from './hooks/useTheme'
@@ -100,10 +100,12 @@ function App() {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false)
   const [syncDialogOpen, setSyncDialogOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [openTip, setOpenTip] = useState<string | null>(null)
   const [confettiKey, setConfettiKey] = useState<number | null>(null)
   const [enteringTaskId, setEnteringTaskId] = useState<string | null>(null)
   const [exitingTaskIds, setExitingTaskIds] = useState<string[]>([])
   const toastTimerRef = useRef<number | null>(null)
+  const openTipShownRef = useRef(false)
   const deleteTimersRef = useRef<Map<string, number>>(new Map())
   const confettiTimerRef = useRef<number | null>(null)
   const enterTimerRef = useRef<number | null>(null)
@@ -155,14 +157,14 @@ function App() {
   const showSkeleton =
     isHydrating || (unlocked && syncState === 'connecting' && tasks.length === 0)
 
-  const syncStatusClass =
-    unlocked && syncState === 'connecting'
-      ? 'is-syncing'
-      : unlocked && syncState === 'synced'
-        ? 'is-synced'
-        : unlocked && (syncState === 'offline' || syncState === 'error')
-          ? 'is-sync-bad'
-          : ''
+  useEffect(() => {
+    if (isHydrating || openTipShownRef.current) return
+    openTipShownRef.current = true
+    const now = new Date()
+    const tip = pickOpenTip(buildOpenTipContext(getPlanSummary(tasks, now, 'month'), now))
+    writeRecentOpenTip(tip)
+    setOpenTip(tip)
+  }, [isHydrating, tasks])
 
   const openNewTask = (date = format(new Date(), 'yyyy-MM-dd')) => {
     setEditingTask(null)
@@ -218,21 +220,17 @@ function App() {
           <span className="brand-mark" aria-hidden="true">
             <CalendarDays size={18} />
           </span>
-          <div>
-            <h1>Planning</h1>
-            <p className={`brand-status ${syncStatusClass}`}>
-              {format(today, 'M月d日')}
-              {unlocked && syncState === 'connecting'
-                ? ' · 同步中'
-                : unlocked && syncState !== 'offline' && syncState !== 'error'
-                  ? ' · 已同步'
-                  : unlocked
-                    ? ` · ${syncLabel}`
-                    : ''}
-              {unlocked && syncState === 'synced' ? (
-                <Check size={12} className="brand-sync-check" aria-hidden="true" />
-              ) : null}
-            </p>
+          <div className="brand-copy">
+            <div className="brand-title-row">
+              <h1>Planning</h1>
+              <span className="brand-date">{format(today, 'M月d日')}</span>
+            </div>
+            {openTip ? (
+              <p className="brand-tip" key={openTip}>
+                <span className="brand-tip-mark" aria-hidden="true" />
+                <span className="brand-tip-text">{openTip}</span>
+              </p>
+            ) : null}
           </div>
         </button>
 

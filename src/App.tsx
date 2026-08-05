@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { addMonths, addWeeks, endOfWeek, format, startOfMonth, startOfWeek } from 'date-fns'
+import { addMonths, addWeeks, endOfWeek, format, parse, startOfMonth, startOfWeek } from 'date-fns'
 import {
   CalendarDays,
   ChevronLeft,
@@ -246,7 +246,19 @@ function App() {
               >
                 <ChevronLeft size={16} aria-hidden="true" />
               </button>
-              <strong>{format(viewMonth, 'yyyy年M月')}</strong>
+              <label className="month-nav-picker">
+                <span>{format(viewMonth, 'yyyy年M月')}</span>
+                <input
+                  type="month"
+                  value={format(viewMonth, 'yyyy-MM')}
+                  aria-label="选择月份"
+                  onChange={(event) => {
+                    const value = event.target.value
+                    if (!value) return
+                    setViewMonth(startOfMonth(parse(value, 'yyyy-MM', new Date())))
+                  }}
+                />
+              </label>
               <button
                 type="button"
                 className="icon-button"

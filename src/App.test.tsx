@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { format } from 'date-fns'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -42,6 +42,16 @@ describe('Planning', () => {
     expect(screen.getByLabelText('切换月份')).toHaveTextContent(
       `${next.getFullYear()}年${next.getMonth() + 1}月`,
     )
+  })
+
+  it('can jump to a month from the month picker', () => {
+    render(<App />)
+
+    fireEvent.change(screen.getByLabelText('选择月份'), {
+      target: { value: '2027-03' },
+    })
+
+    expect(screen.getByLabelText('切换月份')).toHaveTextContent('2027年3月')
   })
 
   it('opens a compact task form from the primary add action', async () => {

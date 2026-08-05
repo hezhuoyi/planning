@@ -249,13 +249,22 @@ function App() {
               <label className="month-nav-picker">
                 <span>{format(viewMonth, 'yyyy年M月')}</span>
                 <input
+                  key={format(viewMonth, 'yyyy-MM')}
                   type="month"
-                  value={format(viewMonth, 'yyyy-MM')}
+                  defaultValue={format(viewMonth, 'yyyy-MM')}
                   aria-label="选择月份"
                   onChange={(event) => {
                     const value = event.target.value
                     if (!value) return
                     setViewMonth(startOfMonth(parse(value, 'yyyy-MM', new Date())))
+                  }}
+                  onBlur={(event) => {
+                    const value = event.currentTarget.value
+                    if (!value) return
+                    const next = startOfMonth(parse(value, 'yyyy-MM', new Date()))
+                    setViewMonth((current) =>
+                      current.getTime() === next.getTime() ? current : next,
+                    )
                   }}
                 />
               </label>

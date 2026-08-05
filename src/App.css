@@ -685,25 +685,30 @@
   background: var(--panel);
   box-shadow: var(--shadow-soft);
   animation: rise-in .55s var(--ease-out) .06s both;
-  overflow: clip;
+  overflow: visible;
 }
 
 .summary-toolbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
   gap: 6px;
   min-width: 0;
-  flex-wrap: nowrap;
 }
 
 .summary-switch {
   position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
   flex-shrink: 0;
-  gap: 2px;
+  gap: 0;
+  height: 30px;
   padding: 2px;
+  overflow: hidden;
   border-radius: 999px;
   background: color-mix(in srgb, var(--line) 70%, var(--primary-soft));
+  box-sizing: border-box;
 }
 
 .summary-switch-pill {
@@ -715,7 +720,7 @@
   width: calc((100% - 4px) / 3);
   border-radius: 999px;
   background: var(--panel);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--ink) 10%, transparent);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--ink) 10%, transparent);
   transition: transform 280ms var(--ease-out);
   pointer-events: none;
 }
@@ -735,9 +740,10 @@
 .summary-switch button {
   position: relative;
   z-index: 1;
-  min-height: 26px;
-  min-width: 48px;
-  padding: 0 14px;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  padding: 0 12px;
   border: 0;
   border-radius: 999px;
   color: var(--muted);
@@ -745,6 +751,7 @@
   cursor: pointer;
   font-size: 13px;
   font-weight: 800;
+  line-height: 1;
   transition: color 160ms var(--ease-out), transform 160ms var(--ease-out);
 }
 
@@ -760,16 +767,19 @@
 }
 
 .month-nav {
-  flex: 0 1 auto;
-  gap: 0;
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  gap: 2px;
+  width: min(12.5rem, 100%);
   min-width: 0;
-  width: max-content;
   max-width: 100%;
+  height: 30px;
   min-height: 30px;
-  margin-left: auto;
-  padding: 2px;
+  margin-left: 0;
+  padding: 2px 4px;
   justify-content: center;
-  overflow: visible;
+  overflow: hidden;
   border-radius: 999px;
   background: color-mix(in srgb, var(--line) 70%, var(--primary-soft));
   box-sizing: border-box;
@@ -779,6 +789,7 @@
   position: relative;
   display: grid;
   place-items: center;
+  flex: 1 1 auto;
   min-width: 0;
   z-index: 2;
 }
@@ -796,15 +807,17 @@
 
 .month-nav-label {
   display: block;
-  max-width: 11.5em;
-  padding-inline: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: none;
+  padding-inline: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .month-nav.is-week .month-nav-label {
-  max-width: 13em;
+  max-width: none;
   font-size: 12px;
   letter-spacing: -0.01em;
 }
@@ -814,9 +827,10 @@
   align-items: center;
   justify-content: center;
   gap: 2px;
+  width: 100%;
   min-width: 0;
   min-height: 26px;
-  padding-inline: 6px 4px;
+  padding-inline: 8px 6px;
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -947,7 +961,7 @@
 
 .month-nav.is-readonly {
   justify-content: center;
-  padding-inline: 10px;
+  padding-inline: 14px;
   margin-left: auto;
 }
 
@@ -1400,8 +1414,8 @@
 }
 
 .owner-group[data-owner='一起'] {
-  --owner-mark-bg: color-mix(in srgb, #f0c08a 48%, var(--panel));
-  --owner-mark-color: #d07845;
+  --owner-mark-bg: color-mix(in srgb, #c4b0dc 42%, var(--panel));
+  --owner-mark-color: #7a5f9a;
 }
 
 .owner-group[data-owner='未指定'] {
@@ -2783,12 +2797,13 @@ button:focus-visible {
   }
 
   .summary-toolbar {
-    gap: 7px;
+    gap: 6px;
   }
 
   .summary-switch {
-    flex-shrink: 0;
+    height: 30px;
     padding: 2px;
+    overflow: hidden;
   }
 
   .summary-switch-pill {
@@ -2799,19 +2814,21 @@ button:focus-visible {
   }
 
   .summary-switch button {
-    min-height: 26px;
-    min-width: 44px;
-    padding-inline: 12px;
+    min-height: 0;
+    min-width: 0;
+    padding-inline: 10px;
     font-size: 13px;
   }
 
   .month-nav {
-    flex: 0 1 auto;
-    width: max-content;
-    max-width: calc(100% - 130px);
+    width: min(12.5rem, 100%);
+    min-width: 0;
+    max-width: 100%;
+    height: 30px;
     min-height: 30px;
     justify-content: center;
-    margin-left: auto;
+    margin-left: 0;
+    overflow: hidden;
   }
 
   .month-nav .icon-button {
@@ -2822,13 +2839,14 @@ button:focus-visible {
   .month-nav-picker {
     min-width: 0;
     min-height: 26px;
-    padding-inline: 4px 2px;
+    padding-inline: 8px 4px;
     gap: 1px;
   }
 
   .month-nav-label,
   .month-nav-picker .month-nav-label {
-    max-width: 7.5em;
+    max-width: none;
+    padding-inline: 4px;
     font-size: 12px;
   }
 
@@ -2838,7 +2856,7 @@ button:focus-visible {
   }
 
   .month-nav.is-week .month-nav-label {
-    max-width: 10em;
+    max-width: none;
     font-size: 12px;
   }
 

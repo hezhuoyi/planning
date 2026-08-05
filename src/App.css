@@ -442,7 +442,7 @@
 }
 
 .topbar,
-.plan-summary,
+.plan-board,
 .status-legend {
   max-width: 1600px;
   margin-inline: auto;
@@ -454,7 +454,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 10px;
+  margin-bottom: 9px;
   animation: rise-in .5s var(--ease-out) both;
 }
 
@@ -525,17 +525,18 @@
 
 .brand h1 {
   margin: 0;
-  font-size: 20px;
-  line-height: 1.1;
+  font-size: 19px;
+  line-height: 1.15;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
 
 .brand p {
-  margin: 2px 0 0;
+  margin: 1px 0 0;
   color: var(--muted);
   font-size: 12px;
   font-weight: 600;
+  line-height: 1.25;
 }
 
 .primary-actions {
@@ -663,24 +664,37 @@
 
 .plan-summary {
   display: grid;
-  gap: 8px;
-  margin-bottom: 10px;
-  padding: 12px 14px;
-  border: 1px solid color-mix(in srgb, var(--panel) 70%, white);
-  border-radius: 20px;
+  gap: 9px;
+  margin-bottom: 0;
+  padding: 11px 14px 9px;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
   background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--panel) 92%, transparent),
-    color-mix(in srgb, var(--primary-soft) 65%, var(--panel))
+    180deg,
+    color-mix(in srgb, var(--primary-soft) 55%, var(--panel)),
+    color-mix(in srgb, var(--panel) 96%, transparent)
   );
+  box-shadow: none;
+  animation: none;
+}
+
+.plan-board {
+  border: 1px solid color-mix(in srgb, var(--panel) 70%, white);
+  border-radius: 18px;
+  background: var(--panel);
   box-shadow: var(--shadow-soft);
   animation: rise-in .55s var(--ease-out) .06s both;
+  overflow: clip;
 }
 
 .summary-toolbar {
-  gap: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
   min-width: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .summary-switch {
@@ -729,7 +743,7 @@
   color: var(--muted);
   background: transparent;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   transition: color 160ms var(--ease-out), transform 160ms var(--ease-out);
 }
@@ -746,9 +760,14 @@
 }
 
 .month-nav {
-  gap: 2px;
+  flex: 0 1 auto;
+  gap: 0;
+  min-width: 0;
+  width: max-content;
+  max-width: 100%;
   margin-left: auto;
   padding: 2px;
+  justify-content: center;
   overflow: visible;
   border-radius: 999px;
   background: color-mix(in srgb, var(--line) 70%, var(--primary-soft));
@@ -758,38 +777,61 @@
   position: relative;
   display: grid;
   place-items: center;
-  min-width: 7.5em;
+  min-width: 0;
   z-index: 2;
 }
 
 .month-nav strong,
 .month-nav-picker,
 .month-nav-label {
-  min-width: 7.5em;
+  min-width: 0;
   color: var(--ink);
   font-size: 13px;
   font-weight: 800;
   text-align: center;
+  line-height: 1.2;
 }
 
 .month-nav-label {
   display: block;
-  max-width: 100%;
+  max-width: 11.5em;
+  padding-inline: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.month-nav.is-week .month-nav-label {
+  max-width: 13em;
+  font-size: 12px;
+  letter-spacing: -0.01em;
+}
+
 .month-nav-picker {
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
   min-height: 28px;
-  padding-inline: 4px;
+  padding-inline: 6px 4px;
   border: 0;
   border-radius: 999px;
   background: transparent;
   cursor: pointer;
   transition: background 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
+}
+
+.month-nav-picker-caret {
+  flex-shrink: 0;
+  color: var(--muted);
+  opacity: 0.85;
+  transition: transform 160ms var(--ease-out), color 160ms var(--ease-out);
+}
+
+.month-nav-picker[aria-expanded='true'] .month-nav-picker-caret {
+  color: var(--primary);
+  transform: rotate(180deg);
 }
 
 .month-nav-picker:hover {
@@ -892,13 +934,18 @@
 }
 
 .month-nav-spacer {
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
+  display: none;
+}
+
+.month-nav.is-readonly {
+  justify-content: center;
+  padding-inline: 10px;
+  margin-left: auto;
 }
 
 .month-nav.is-readonly strong {
-  min-width: 9em;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .summary-copy {
@@ -906,19 +953,25 @@
   animation: content-swap .38s var(--ease-out) both;
 }
 
+.summary-text {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .summary-kicker {
-  margin: 0 0 2px;
+  margin: 0;
   color: var(--primary);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
 }
 
 .summary-copy h2 {
-  margin: 0;
-  font-size: 17px;
+  margin: 3px 0 0;
+  font-size: 15px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   line-height: 1.3;
 }
 
@@ -926,13 +979,13 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 10px;
+  gap: 5px 10px;
 }
 
 .summary-stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 5px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -942,12 +995,13 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 3px 8px;
+  padding: 4px 8px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--line) 55%, var(--panel));
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
+  line-height: 1.2;
   animation: stat-in .36s var(--ease-out) both;
 }
 
@@ -984,8 +1038,17 @@
   background: color-mix(in srgb, var(--muted) 12%, var(--panel));
 }
 
+.summary-detail,
+.summary-copy p.summary-detail {
+  margin: 1px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .summary-copy p:last-child {
-  margin: 3px 0 0;
+  margin: 1px 0 0;
   color: var(--muted);
   font-size: 12px;
   font-weight: 600;
@@ -1065,6 +1128,16 @@
   animation: rise-in .6s var(--ease-out) .12s both;
 }
 
+.plan-board .gantt-shell {
+  max-width: none;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  animation: none;
+}
+
 .gantt-scroll {
   width: 100%;
   overflow-x: auto;
@@ -1103,12 +1176,12 @@
 
 .gantt-canvas.is-month .gantt-header,
 .gantt-canvas.is-week .gantt-header {
-  height: 46px;
+  height: 48px;
 }
 
 .gantt-canvas.is-month .period-row,
 .gantt-canvas.is-week .period-row {
-  height: 28px;
+  height: 30px;
 }
 
 .year-row,
@@ -1167,7 +1240,7 @@
   justify-items: start;
   padding-left: 10px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -1178,9 +1251,10 @@
 }
 
 .period-block {
-  color: var(--faint);
-  font-size: 11px;
-  font-weight: 600;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.15;
 }
 
 .gantt-body {
@@ -2639,17 +2713,17 @@ button:focus-visible {
   }
 
   .app-shell {
-    padding: 12px 12px 10px;
-    padding-top: calc(12px + env(safe-area-inset-top));
-    padding-right: calc(12px + env(safe-area-inset-right));
-    padding-bottom: calc(10px + env(safe-area-inset-bottom));
-    padding-left: calc(12px + env(safe-area-inset-left));
+    padding: 11px 11px 9px;
+    padding-top: calc(11px + env(safe-area-inset-top));
+    padding-right: calc(11px + env(safe-area-inset-right));
+    padding-bottom: calc(9px + env(safe-area-inset-bottom));
+    padding-left: calc(11px + env(safe-area-inset-left));
   }
 
   .topbar {
-    min-height: 40px;
+    min-height: 38px;
     gap: 8px;
-    margin-bottom: 8px;
+    margin-bottom: 7px;
   }
 
   .brand {
@@ -2657,17 +2731,18 @@ button:focus-visible {
   }
 
   .brand-mark {
-    width: 30px;
-    height: 30px;
-    flex-basis: 30px;
-    border-radius: 10px;
+    width: 28px;
+    height: 28px;
+    flex-basis: 28px;
+    border-radius: 9px;
   }
 
   .brand h1 {
-    font-size: 17px;
+    font-size: 16px;
   }
 
   .brand p {
+    margin-top: 0;
     font-size: 11px;
   }
 
@@ -2678,9 +2753,9 @@ button:focus-visible {
 
   .today-button,
   .primary-button {
-    min-height: 34px;
-    min-width: 34px;
-    padding-inline: 10px;
+    min-height: 32px;
+    min-width: 32px;
+    padding-inline: 9px;
   }
 
   .today-button .button-label,
@@ -2688,42 +2763,115 @@ button:focus-visible {
     display: none;
   }
 
-  .plan-summary {
-    gap: 6px;
-    margin-bottom: 8px;
-    padding: 10px 12px;
+  .plan-board {
     border-radius: 14px;
   }
 
-  .summary-toolbar {
+  .plan-summary {
     gap: 8px;
+    margin-bottom: 0;
+    padding: 9px 11px 8px;
+    border-radius: 0;
+  }
+
+  .summary-toolbar {
+    gap: 7px;
+  }
+
+  .summary-switch {
+    flex-shrink: 0;
+    padding: 2px;
+  }
+
+  .summary-switch-pill {
+    top: 2px;
+    bottom: 2px;
+    left: 2px;
+    width: calc((100% - 4px) / 3);
   }
 
   .summary-switch button {
     min-height: 26px;
-    min-width: 36px;
-    padding-inline: 8px;
+    min-width: 32px;
+    padding-inline: 7px;
     font-size: 12px;
   }
 
   .month-nav {
-    width: 100%;
-    justify-content: space-between;
-    margin-left: 0;
+    flex: 0 1 auto;
+    width: max-content;
+    max-width: calc(100% - 118px);
+    justify-content: center;
+    margin-left: auto;
+  }
+
+  .month-nav .icon-button {
+    width: 26px;
+    height: 26px;
+  }
+
+  .month-nav-picker {
+    min-width: 0;
+    min-height: 26px;
+    padding-inline: 4px 2px;
+    gap: 1px;
+  }
+
+  .month-nav-label,
+  .month-nav-picker .month-nav-label {
+    max-width: 7.5em;
+    font-size: 12px;
+  }
+
+  .month-nav-picker-caret {
+    width: 12px;
+    height: 12px;
+  }
+
+  .month-nav.is-week .month-nav-label {
+    max-width: 10em;
+    font-size: 12px;
   }
 
   .summary-copy h2 {
-    font-size: 15px;
+    margin-top: 3px;
+    font-size: 14px;
   }
 
+  .summary-kicker {
+    font-size: 11px;
+    letter-spacing: 0.01em;
+  }
+
+  .summary-main {
+    align-items: center;
+    gap: 5px 8px;
+  }
+
+  .summary-stats {
+    gap: 5px;
+  }
+
+  .summary-stats li {
+    gap: 4px;
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+
+  .summary-stats li i {
+    width: 6px;
+    height: 6px;
+  }
+
+  .summary-detail,
   .summary-copy p:last-child {
     font-size: 11px;
   }
 
   .sync-button {
-    min-height: 34px;
-    min-width: 34px;
-    padding-inline: 10px;
+    min-height: 32px;
+    min-width: 32px;
+    padding-inline: 9px;
     font-size: 11px;
   }
 
@@ -2736,17 +2884,17 @@ button:focus-visible {
   }
 
   .gantt-header {
-    height: 48px;
+    height: 46px;
   }
 
   .gantt-canvas.is-month .gantt-header,
   .gantt-canvas.is-week .gantt-header {
-    height: 42px;
+    height: 44px;
   }
 
   .gantt-canvas.is-month .period-row,
   .gantt-canvas.is-week .period-row {
-    height: 26px;
+    height: 28px;
   }
 
   .year-row {
@@ -2758,9 +2906,21 @@ button:focus-visible {
     height: 16px;
   }
 
-  .header-block,
-  .month-block {
+  .year-block {
+    padding-left: 8px;
     font-size: 11px;
+  }
+
+  .header-block,
+  .month-block,
+  .period-block {
+    font-size: 11px;
+  }
+
+  .gantt-canvas.is-week .period-block,
+  .gantt-canvas.is-month .period-block {
+    font-size: 12px;
+    font-weight: 700;
   }
 
   .owner-group-label {

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { format, startOfMonth } from 'date-fns'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const MONTHS = Array.from({ length: 12 }, (_, index) => index)
 
@@ -76,6 +76,7 @@ export function MonthNavPicker({ value, onChange }: MonthNavPickerProps) {
         onClick={() => setOpen((current) => !current)}
       >
         <span className="month-nav-label">{format(value, 'yyyy年M月')}</span>
+        <ChevronDown className="month-nav-picker-caret" size={14} aria-hidden="true" />
       </button>
 
       {open &&

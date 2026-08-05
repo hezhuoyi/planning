@@ -280,170 +280,172 @@ function App() {
         </div>
       </header>
 
-      <section className="plan-summary" aria-label="计划概览">
-        <div className="summary-toolbar">
+      <div className="plan-board">
+        <section className="plan-summary" aria-label="计划概览">
+          <div className="summary-toolbar">
+            <div
+              className="summary-switch"
+              role="tablist"
+              aria-label="时间轴范围"
+              data-scope={viewScope}
+            >
+              <span className="summary-switch-pill" aria-hidden="true" />
+              <button
+                type="button"
+                role="tab"
+                aria-selected={viewScope === 'week'}
+                className={viewScope === 'week' ? 'active' : ''}
+                onClick={() => {
+                  setViewScope('week')
+                  setViewWeek(startOfWeek(new Date(), { weekStartsOn: 1 }))
+                }}
+              >
+                周
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={viewScope === 'month'}
+                className={viewScope === 'month' ? 'active' : ''}
+                onClick={() => {
+                  setViewScope('month')
+                  setViewMonth(startOfMonth(new Date()))
+                }}
+              >
+                月
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={viewScope === 'all'}
+                className={viewScope === 'all' ? 'active' : ''}
+                onClick={() => setViewScope('all')}
+              >
+                全部
+              </button>
+            </div>
+
+            {viewScope === 'week' && (
+              <div className="month-nav is-week" aria-label="切换周">
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="上一周"
+                  onClick={() =>
+                    setViewWeek((week) => startOfWeek(addWeeks(week, -1), { weekStartsOn: 1 }))
+                  }
+                >
+                  <ChevronLeft size={16} aria-hidden="true" />
+                </button>
+                <strong className="month-nav-label">
+                  {format(viewWeek, 'M月d日')}
+                  –
+                  {format(endOfWeek(viewWeek, { weekStartsOn: 1 }), 'M月d日')}
+                </strong>
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="下一周"
+                  onClick={() =>
+                    setViewWeek((week) => startOfWeek(addWeeks(week, 1), { weekStartsOn: 1 }))
+                  }
+                >
+                  <ChevronRight size={16} aria-hidden="true" />
+                </button>
+              </div>
+            )}
+
+            {viewScope === 'month' && (
+              <div className="month-nav" aria-label="切换月份">
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="上个月"
+                  onClick={() => setViewMonth((month) => startOfMonth(addMonths(month, -1)))}
+                >
+                  <ChevronLeft size={16} aria-hidden="true" />
+                </button>
+                <MonthNavPicker value={viewMonth} onChange={setViewMonth} />
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="下个月"
+                  onClick={() => setViewMonth((month) => startOfMonth(addMonths(month, 1)))}
+                >
+                  <ChevronRight size={16} aria-hidden="true" />
+                </button>
+              </div>
+            )}
+
+            {viewScope === 'all' && (
+              <div className="month-nav is-readonly" aria-label="整体时间范围">
+                <strong className="month-nav-label">{allRangeLabel}</strong>
+              </div>
+            )}
+          </div>
+
           <div
-            className="summary-switch"
-            role="tablist"
-            aria-label="时间轴范围"
-            data-scope={viewScope}
+            className="summary-copy"
+            key={`${viewScope}-${format(viewAnchor, 'yyyy-MM-dd')}`}
           >
-            <span className="summary-switch-pill" aria-hidden="true" />
-            <button
-              type="button"
-              role="tab"
-              aria-selected={viewScope === 'week'}
-              className={viewScope === 'week' ? 'active' : ''}
-              onClick={() => {
-                setViewScope('week')
-                setViewWeek(startOfWeek(new Date(), { weekStartsOn: 1 }))
-              }}
-            >
-              周
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={viewScope === 'month'}
-              className={viewScope === 'month' ? 'active' : ''}
-              onClick={() => {
-                setViewScope('month')
-                setViewMonth(startOfMonth(new Date()))
-              }}
-            >
-              月
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={viewScope === 'all'}
-              className={viewScope === 'all' ? 'active' : ''}
-              onClick={() => setViewScope('all')}
-            >
-              全部
-            </button>
+            <div className="summary-main">
+              <div className="summary-text">
+                <p className="summary-kicker">{summary.kicker}</p>
+                <h2>{summary.headline}</h2>
+              </div>
+              {summary.total > 0 &&
+                (summary.inFlight > 0 ||
+                  summary.upcoming > 0 ||
+                  summary.overdue > 0 ||
+                  summary.completed > 0) && (
+                  <ul className="summary-stats" aria-label="状态速览">
+                    {summary.inFlight > 0 && (
+                      <li className="is-progress">
+                        <i aria-hidden="true" />
+                        {summary.inFlight} 进行中
+                      </li>
+                    )}
+                    {summary.upcoming > 0 && (
+                      <li className="is-upcoming">
+                        <i aria-hidden="true" />
+                        {summary.upcoming} 待开始
+                      </li>
+                    )}
+                    {summary.overdue > 0 && (
+                      <li className="is-overdue">
+                        <i aria-hidden="true" />
+                        {summary.overdue} 已逾期
+                      </li>
+                    )}
+                    {summary.completed > 0 && (
+                      <li className="is-done">
+                        <i aria-hidden="true" />
+                        {summary.completed} 已完成
+                      </li>
+                    )}
+                  </ul>
+                )}
+            </div>
+            {summary.detail ? <p className="summary-detail">{summary.detail}</p> : null}
           </div>
+        </section>
 
-          {viewScope === 'week' && (
-            <div className="month-nav" aria-label="切换周">
-              <button
-                type="button"
-                className="icon-button"
-                aria-label="上一周"
-                onClick={() =>
-                  setViewWeek((week) => startOfWeek(addWeeks(week, -1), { weekStartsOn: 1 }))
-                }
-              >
-                <ChevronLeft size={16} aria-hidden="true" />
-              </button>
-              <strong className="month-nav-label">
-                {format(viewWeek, 'M月d日')}
-                –
-                {format(endOfWeek(viewWeek, { weekStartsOn: 1 }), 'M月d日')}
-              </strong>
-              <button
-                type="button"
-                className="icon-button"
-                aria-label="下一周"
-                onClick={() =>
-                  setViewWeek((week) => startOfWeek(addWeeks(week, 1), { weekStartsOn: 1 }))
-                }
-              >
-                <ChevronRight size={16} aria-hidden="true" />
-              </button>
-            </div>
-          )}
-
-          {viewScope === 'month' && (
-            <div className="month-nav" aria-label="切换月份">
-              <button
-                type="button"
-                className="icon-button"
-                aria-label="上个月"
-                onClick={() => setViewMonth((month) => startOfMonth(addMonths(month, -1)))}
-              >
-                <ChevronLeft size={16} aria-hidden="true" />
-              </button>
-              <MonthNavPicker value={viewMonth} onChange={setViewMonth} />
-              <button
-                type="button"
-                className="icon-button"
-                aria-label="下个月"
-                onClick={() => setViewMonth((month) => startOfMonth(addMonths(month, 1)))}
-              >
-                <ChevronRight size={16} aria-hidden="true" />
-              </button>
-            </div>
-          )}
-
-          {viewScope === 'all' && (
-            <div className="month-nav is-readonly" aria-label="整体时间范围">
-              <span className="month-nav-spacer" aria-hidden="true" />
-              <strong className="month-nav-label">{allRangeLabel}</strong>
-              <span className="month-nav-spacer" aria-hidden="true" />
-            </div>
-          )}
-        </div>
-
-        <div
-          className="summary-copy"
-          key={`${viewScope}-${format(viewAnchor, 'yyyy-MM-dd')}`}
-        >
-          <p className="summary-kicker">{summary.kicker}</p>
-          <div className="summary-main">
-            <h2>{summary.headline}</h2>
-            {summary.total > 0 &&
-              (summary.inFlight > 0 ||
-                summary.upcoming > 0 ||
-                summary.overdue > 0 ||
-                summary.completed > 0) && (
-                <ul className="summary-stats" aria-label="状态速览">
-                  {summary.inFlight > 0 && (
-                    <li className="is-progress">
-                      <i aria-hidden="true" />
-                      {summary.inFlight} 进行中
-                    </li>
-                  )}
-                  {summary.upcoming > 0 && (
-                    <li className="is-upcoming">
-                      <i aria-hidden="true" />
-                      {summary.upcoming} 待开始
-                    </li>
-                  )}
-                  {summary.overdue > 0 && (
-                    <li className="is-overdue">
-                      <i aria-hidden="true" />
-                      {summary.overdue} 已逾期
-                    </li>
-                  )}
-                  {summary.completed > 0 && (
-                    <li className="is-done">
-                      <i aria-hidden="true" />
-                      {summary.completed} 已完成
-                    </li>
-                  )}
-                </ul>
-              )}
-          </div>
-          {summary.detail ? <p>{summary.detail}</p> : null}
-        </div>
-      </section>
-
-      <GanttBoard
-        tasks={tasks}
-        viewScope={viewScope}
-        viewMonth={viewAnchor}
-        focusTodayToken={focusTodayToken}
-        enteringTaskId={enteringTaskId}
-        exitingTaskIds={exitingTaskIds}
-        showSkeleton={showSkeleton}
-        onEdit={openEditTask}
-        onCreateAt={openNewTask}
-        onReschedule={(task) => {
-          void saveTask(task)
-          showToast('已调整日期')
-        }}
-      />
+        <GanttBoard
+          tasks={tasks}
+          viewScope={viewScope}
+          viewMonth={viewAnchor}
+          focusTodayToken={focusTodayToken}
+          enteringTaskId={enteringTaskId}
+          exitingTaskIds={exitingTaskIds}
+          showSkeleton={showSkeleton}
+          onEdit={openEditTask}
+          onCreateAt={openNewTask}
+          onReschedule={(task) => {
+            void saveTask(task)
+            showToast('已调整日期')
+          }}
+        />
+      </div>
 
       {taskDialogOpen && (
         <TaskDialog

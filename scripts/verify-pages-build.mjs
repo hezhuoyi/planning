@@ -3,6 +3,14 @@ import { join } from 'node:path'
 
 const expectedBase = '/planning/'
 const distDir = process.env.DIST_DIR ?? 'dist'
+const viteConfig = await readFile('vite.config.ts', 'utf8')
+const iconCacheVersion = viteConfig.match(
+  /ICON_CACHE_VERSION\s*=\s*['"]([^'"]+)['"]/,
+)?.[1]
+if (!iconCacheVersion) {
+  throw new Error('ICON_CACHE_VERSION not found in vite.config.ts')
+}
+
 const [html, manifestText, serviceWorker] = await Promise.all([
   readFile(join(distDir, 'index.html'), 'utf8'),
   readFile(join(distDir, 'manifest.webmanifest'), 'utf8'),
@@ -19,7 +27,10 @@ const checks = [
   [html.includes(`${expectedBase}assets/`), 'index.html asset URLs'],
   [html.includes(`${expectedBase}manifest.webmanifest`), 'manifest URL'],
   [html.includes('apple-touch-icon'), 'apple-touch-icon link'],
-  [html.includes('apple-touch-icon-20260804f.png'), 'versioned apple-touch-icon'],
+  [
+    html.includes(`apple-touch-icon-${iconCacheVersion}.png`),
+    'versioned apple-touch-icon',
+  ],
   [manifest.start_url === expectedBase, 'manifest start_url'],
   [manifest.scope === expectedBase, 'manifest scope'],
   [
@@ -27,7 +38,7 @@ const checks = [
       manifest.icons.some(
         (icon) =>
           typeof icon?.src === 'string' &&
-          icon.src.includes('pwa-192-20260804f.png') &&
+          icon.src.includes(`pwa-192-${iconCacheVersion}.png`) &&
           icon.type === 'image/png',
       ),
     'manifest png icons',

@@ -1,4 +1,4 @@
-/** Calendar mark aligned with the app icon — cream card on the brand tile. */
+/** Seal mark — nested stone frame, no letterform. */
 export function BrandLogo({ size = 18 }: { size?: number }) {
   return (
     <svg
@@ -9,14 +9,17 @@ export function BrandLogo({ size = 18 }: { size?: number }) {
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
-      <rect x="5" y="6.5" width="14" height="13.5" rx="3" fill="#fffaf6" />
-      <path
-        d="M5 6.5c0-1.66 1.34-3 3-3h8c1.66 0 3 1.34 3 3v3.2H5V6.5z"
-        fill="#ffe8d6"
+      <rect
+        x="4.35"
+        y="4.35"
+        width="15.3"
+        height="15.3"
+        rx="3.4"
+        stroke="currentColor"
+        strokeWidth="1.55"
       />
-      <rect x="8.1" y="4.4" width="1.55" height="3.6" rx="0.75" fill="#fffaf6" />
-      <rect x="14.35" y="4.4" width="1.55" height="3.6" rx="0.75" fill="#fffaf6" />
-      <rect x="9.6" y="14.6" width="4.8" height="2.6" rx="1.1" fill="#5d9b82" />
+      <rect x="7.6" y="7.6" width="8.8" height="8.8" rx="2.1" fill="currentColor" />
+      <rect x="10.15" y="11.35" width="3.7" height="1.35" rx="0.65" fill="#1a1612" />
     </svg>
   )
 }

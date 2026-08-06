@@ -6,7 +6,7 @@ const requestedBase = process.env.VITE_BASE_PATH ?? '/'
 const normalizedPath = requestedBase.replace(/^\/+|\/+$/g, '')
 const base = normalizedPath ? `/${normalizedPath}/` : '/'
 /** Bump + rename icon files when replacing app icons (iOS caches by URL path). */
-const ICON_CACHE_VERSION = '20260806i'
+const ICON_CACHE_VERSION = '20260806j'
 
 export default defineConfig({
   base,

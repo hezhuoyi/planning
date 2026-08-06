@@ -10,16 +10,14 @@ permissions:
   pages: write
   id-token: write
 
+# Keep the in-flight deploy; canceling mid-deploy can leave Pages locks stuck.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -32,9 +30,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
 
       - name: Build Pages artifact
         run: npm run build
@@ -49,6 +44,38 @@ jobs:
         with:
           path: dist
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.final.outputs.page_url }}
+    steps:
       - name: Deploy Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Wait before retry
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 45
+
+      - name: Deploy Pages (retry)
+        id: deployment_retry
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Resolve deployment result
+        id: final
+        run: |
+          if [ "${{ steps.deployment.outcome }}" = "success" ]; then
+            echo "page_url=${{ steps.deployment.outputs.page_url }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "${{ steps.deployment_retry.outcome }}" = "success" ]; then
+            echo "page_url=${{ steps.deployment_retry.outputs.page_url }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "GitHub Pages deploy timed out twice. Re-run this workflow, or clear a stuck deployment under Settings → Environments → github-pages." >&2
+          exit 1

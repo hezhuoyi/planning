@@ -24,6 +24,7 @@ const entryBundle =
     : ''
 
 const checks = [
+  [!html.includes('%ICON_VERSION%'), 'icon version placeholders resolved'],
   [html.includes(`${expectedBase}assets/`), 'index.html asset URLs'],
   [html.includes(`${expectedBase}manifest.webmanifest`), 'manifest URL'],
   [html.includes('apple-touch-icon'), 'apple-touch-icon link'],
@@ -31,6 +32,7 @@ const checks = [
     html.includes(`apple-touch-icon-${iconCacheVersion}.png`),
     'versioned apple-touch-icon',
   ],
+  [html.includes(`favicon-${iconCacheVersion}.svg`), 'versioned favicon'],
   [manifest.start_url === expectedBase, 'manifest start_url'],
   [manifest.scope === expectedBase, 'manifest scope'],
   [

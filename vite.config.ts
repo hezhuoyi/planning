@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
@@ -8,10 +8,21 @@ const base = normalizedPath ? `/${normalizedPath}/` : '/'
 /** Bump + rename icon files when replacing app icons (iOS caches by URL path). */
 const ICON_CACHE_VERSION = '20260806k'
 
+/** Keep index.html icon URLs in lockstep with ICON_CACHE_VERSION. */
+function iconVersionPlugin(): Plugin {
+  return {
+    name: 'planning-icon-version',
+    transformIndexHtml(html) {
+      return html.replaceAll('%ICON_VERSION%', ICON_CACHE_VERSION)
+    },
+  }
+}
+
 export default defineConfig({
   base,
   plugins: [
     react(),
+    iconVersionPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',

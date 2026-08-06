@@ -1,14 +1,30 @@
-import { readFile } from 'node:fs/promises'
+import { access, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { constants as fsConstants } from 'node:fs'
 
 const expectedBase = '/planning/'
 const distDir = process.env.DIST_DIR ?? 'dist'
+
 const viteConfig = await readFile('vite.config.ts', 'utf8')
-const iconCacheVersion = viteConfig.match(
-  /ICON_CACHE_VERSION\s*=\s*['"]([^'"]+)['"]/,
-)?.[1]
-if (!iconCacheVersion) {
-  throw new Error('ICON_CACHE_VERSION not found in vite.config.ts')
+const iconVersion = viteConfig.match(/ICON_VERSION\s*=\s*['"]([^'"]+)['"]/)?.[1]
+if (!iconVersion) throw new Error('ICON_VERSION not found in vite.config.ts')
+
+const requiredFiles = [
+  `favicon-${iconVersion}.svg`,
+  `apple-touch-icon-${iconVersion}.png`,
+  `pwa-192-${iconVersion}.png`,
+  `pwa-512-${iconVersion}.png`,
+  'index.html',
+  'manifest.webmanifest',
+  'sw.js',
+]
+
+for (const file of requiredFiles) {
+  try {
+    await access(join(distDir, file), fsConstants.R_OK)
+  } catch {
+    throw new Error(`Missing required Pages artifact: ${file}`)
+  }
 }
 
 const [html, manifestText, serviceWorker] = await Promise.all([
@@ -27,12 +43,8 @@ const checks = [
   [!html.includes('%ICON_VERSION%'), 'icon version placeholders resolved'],
   [html.includes(`${expectedBase}assets/`), 'index.html asset URLs'],
   [html.includes(`${expectedBase}manifest.webmanifest`), 'manifest URL'],
-  [html.includes('apple-touch-icon'), 'apple-touch-icon link'],
-  [
-    html.includes(`apple-touch-icon-${iconCacheVersion}.png`),
-    'versioned apple-touch-icon',
-  ],
-  [html.includes(`favicon-${iconCacheVersion}.svg`), 'versioned favicon'],
+  [html.includes(`favicon-${iconVersion}.svg`), 'versioned favicon'],
+  [html.includes(`apple-touch-icon-${iconVersion}.png`), 'versioned apple-touch-icon'],
   [manifest.start_url === expectedBase, 'manifest start_url'],
   [manifest.scope === expectedBase, 'manifest scope'],
   [
@@ -40,7 +52,7 @@ const checks = [
       manifest.icons.some(
         (icon) =>
           typeof icon?.src === 'string' &&
-          icon.src.includes(`pwa-192-${iconCacheVersion}.png`) &&
+          icon.src.includes(`pwa-192-${iconVersion}.png`) &&
           icon.type === 'image/png',
       ),
     'manifest png icons',
@@ -54,4 +66,4 @@ const checks = [
 const failed = checks.filter(([passed]) => !passed).map(([, label]) => label)
 if (failed.length) throw new Error(`Invalid GitHub Pages build: ${failed.join(', ')}`)
 
-console.log('GitHub Pages artifact paths verified.')
+console.log(`GitHub Pages artifact verified (icons ${iconVersion}).`)

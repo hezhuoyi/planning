@@ -5,15 +5,18 @@ import { VitePWA } from 'vite-plugin-pwa'
 const requestedBase = process.env.VITE_BASE_PATH ?? '/'
 const normalizedPath = requestedBase.replace(/^\/+|\/+$/g, '')
 const base = normalizedPath ? `/${normalizedPath}/` : '/'
-/** Bump + rename icon files when replacing app icons (iOS caches by URL path). */
-const ICON_CACHE_VERSION = '20260806k'
 
-/** Keep index.html icon URLs in lockstep with ICON_CACHE_VERSION. */
-function iconVersionPlugin(): Plugin {
+/**
+ * Single icon version for cache-busting.
+ * When replacing icons: bump this value and rename the 4 files in /public.
+ */
+const ICON_VERSION = 'v1'
+
+function injectIconVersion(): Plugin {
   return {
-    name: 'planning-icon-version',
+    name: 'inject-icon-version',
     transformIndexHtml(html) {
-      return html.replaceAll('%ICON_VERSION%', ICON_CACHE_VERSION)
+      return html.replaceAll('%ICON_VERSION%', ICON_VERSION)
     },
   }
 }
@@ -22,15 +25,15 @@ export default defineConfig({
   base,
   plugins: [
     react(),
-    iconVersionPlugin(),
+    injectIconVersion(),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       includeAssets: [
-        `favicon-${ICON_CACHE_VERSION}.svg`,
-        `apple-touch-icon-${ICON_CACHE_VERSION}.png`,
-        `pwa-192-${ICON_CACHE_VERSION}.png`,
-        `pwa-512-${ICON_CACHE_VERSION}.png`,
+        `favicon-${ICON_VERSION}.svg`,
+        `apple-touch-icon-${ICON_VERSION}.png`,
+        `pwa-192-${ICON_VERSION}.png`,
+        `pwa-512-${ICON_VERSION}.png`,
       ],
       manifest: {
         name: 'Planning',
@@ -44,19 +47,19 @@ export default defineConfig({
         theme_color: '#1a1612',
         icons: [
           {
-            src: `${base}pwa-192-${ICON_CACHE_VERSION}.png`,
+            src: `${base}pwa-192-${ICON_VERSION}.png`,
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: `${base}pwa-512-${ICON_CACHE_VERSION}.png`,
+            src: `${base}pwa-512-${ICON_VERSION}.png`,
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: `${base}pwa-512-${ICON_CACHE_VERSION}.png`,
+            src: `${base}pwa-512-${ICON_VERSION}.png`,
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
@@ -74,9 +77,9 @@ export default defineConfig({
               ),
             handler: 'NetworkFirst',
             options: {
-              cacheName: `planning-icons-v${ICON_CACHE_VERSION}`,
+              cacheName: `planning-icons-${ICON_VERSION}`,
               expiration: {
-                maxEntries: 16,
+                maxEntries: 8,
                 maxAgeSeconds: 60 * 60 * 24,
               },
               networkTimeoutSeconds: 3,

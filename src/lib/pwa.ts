@@ -7,7 +7,7 @@ const ICON_CACHE_PATTERNS = [
   /pwa-\d+[^/]*\.(svg|png)/i,
   /manifest\.webmanifest/i,
 ]
-const ICON_CACHE_NAME_PATTERN = /^planning-icons-v/i
+const ICON_CACHE_NAME_PATTERN = /^planning-icons-/i
 
 async function clearIconCaches(): Promise<void> {
   if (!('caches' in window)) return

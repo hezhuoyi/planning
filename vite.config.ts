@@ -31,8 +31,6 @@ export default defineConfig({
         `apple-touch-icon-${ICON_CACHE_VERSION}.png`,
         `pwa-192-${ICON_CACHE_VERSION}.png`,
         `pwa-512-${ICON_CACHE_VERSION}.png`,
-        `pwa-192-${ICON_CACHE_VERSION}.svg`,
-        `pwa-512-${ICON_CACHE_VERSION}.svg`,
       ],
       manifest: {
         name: 'Planning',

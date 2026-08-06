@@ -42,7 +42,7 @@ describe('registerPwaUpdates', () => {
       keys: vi.fn(async () => ['workbox-precache']),
       open: vi.fn(async () => ({
         keys: vi.fn(async () => [
-          { url: 'https://example.com/planning/favicon.svg' },
+          { url: 'https://example.com/planning/favicon-20260806k.svg' },
           { url: 'https://example.com/planning/assets/app.js' },
         ]),
         delete: vi.fn(async () => true),
@@ -105,7 +105,7 @@ describe('registerPwaUpdates', () => {
       keys: vi.fn(async () => ['workbox-precache']),
       open: vi.fn(async () => ({
         keys: vi.fn(async () => [
-          { url: 'https://example.com/planning/pwa-192x192.svg?v=1' },
+          { url: 'https://example.com/planning/pwa-192-20260806k.svg?v=1' },
           { url: 'https://example.com/planning/assets/app.js' },
         ]),
         delete: deleteEntry,
@@ -123,7 +123,7 @@ describe('registerPwaUpdates', () => {
 
     await vi.waitFor(() => {
       expect(deleteEntry).toHaveBeenCalledWith({
-        url: 'https://example.com/planning/pwa-192x192.svg?v=1',
+        url: 'https://example.com/planning/pwa-192-20260806k.svg?v=1',
       })
       expect(applyUpdate).toHaveBeenCalledWith(true)
     })

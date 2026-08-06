@@ -5,7 +5,6 @@ const ICON_CACHE_PATTERNS = [
   /favicon[^/]*\.(svg|ico)/i,
   /apple-touch-icon[^/]*\.png/i,
   /pwa-\d+[^/]*\.(svg|png)/i,
-  /icons\.svg/i,
   /manifest\.webmanifest/i,
 ]
 const ICON_CACHE_NAME_PATTERN = /^planning-icons-v/i

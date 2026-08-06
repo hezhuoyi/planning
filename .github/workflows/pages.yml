@@ -9,18 +9,16 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: read
+  deployments: write
 
-# Avoid canceling an in-flight Pages publish (can leave the queue wedged).
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -50,6 +48,34 @@ jobs:
         with:
           path: dist
 
-      - name: Deploy Pages
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # Same artifact client as actions/deploy-pages (REST artifact ids are not accepted).
+      - name: Install deploy helpers
+        run: npm install --no-save @actions/artifact@2.3.2
+
+      - name: Cancel stale Pages deployments
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/deploy-pages-robust.mjs --cancel-stale-only
+
+      - name: Deploy Pages (long poll, no cancel-on-timeout)
         id: deployment
-        uses: actions/deploy-pages@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PAGES_DEPLOY_TIMEOUT_MS: "1500000"
+          PAGES_DEPLOY_POLL_MS: "10000"
+        run: node scripts/deploy-pages-robust.mjs

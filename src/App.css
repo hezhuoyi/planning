@@ -505,9 +505,9 @@
   overflow: hidden;
   border-radius: 14px;
   color: #fff;
-  background: var(--primary-gradient);
+  background: var(--brand-gradient);
   background-size: 160% 160%;
-  box-shadow: var(--primary-shadow);
+  box-shadow: var(--brand-shadow);
   animation:
     brand-float 3.2s ease-in-out infinite,
     gradient-shift 5s ease-in-out infinite;

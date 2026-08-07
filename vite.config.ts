@@ -10,7 +10,7 @@ const base = normalizedPath ? `/${normalizedPath}/` : '/'
  * Single icon version for cache-busting.
  * When replacing icons: bump this value and rename the 4 files in /public.
  */
-const ICON_VERSION = 'v1'
+const ICON_VERSION = '20260804f'
 
 function injectIconVersion(): Plugin {
   return {

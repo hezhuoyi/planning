@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { addMonths, addWeeks, endOfWeek, format, startOfMonth, startOfWeek } from 'date-fns'
 import {
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
   Cloud,
@@ -11,7 +12,6 @@ import {
   Plus,
 } from 'lucide-react'
 import './App.css'
-import { BrandLogo } from './components/BrandLogo'
 import { GanttBoard } from './components/GanttBoard'
 import { MonthNavPicker } from './components/MonthNavPicker'
 import { SyncDialog } from './components/SyncDialog'
@@ -217,7 +217,7 @@ function App() {
           }
         >
           <span className="brand-mark" aria-hidden="true">
-            <BrandLogo size={18} />
+            <CalendarDays size={18} />
           </span>
           <div className="brand-copy">
             <div className="brand-title-row">

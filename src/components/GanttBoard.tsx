@@ -551,7 +551,7 @@ export function GanttBoard({
       })
     })
     return () => window.clearTimeout(timer)
-    // todayLeft 刻意不入依赖：仅消费点击当次的位置
+    // todayLeft 刻意不入依赖：仅消费点击当次的位置 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardWidth, focusTodayToken, todayVisible])
 

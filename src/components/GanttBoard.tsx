@@ -22,7 +22,6 @@ import {
   getTaskProgress,
   getTaskStatus,
   getTimelineRange,
-  shiftTaskByDays,
   type SummaryScope,
 } from '../domain/timeline'
 import type { Task, TaskCategory, TaskStatus } from '../domain/types'
@@ -37,7 +36,6 @@ interface GanttBoardProps {
   showSkeleton?: boolean
   onEdit: (task: Task) => void
   onCreateAt: (date: string) => void
-  onReschedule?: (task: Task) => void
 }
 
 const STATUS_LABELS: Record<TaskStatus, string> = {
@@ -48,8 +46,9 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   completed: '已完成',
 }
 
-const DRAG_THRESHOLD_PX = 10
 const LONG_PRESS_MS = 480
+/** 移动超过该距离则取消长按预览，避免横滑时误出预览 */
+const LONG_PRESS_MOVE_CANCEL_PX = 12
 
 function getBarDensity(
   widthRatio: number,
@@ -124,12 +123,10 @@ function TaskMarkButton({
   barDelay,
   left,
   width,
-  dayWidthPx,
   isEntering,
   isExiting,
   labelEnd = false,
   onEdit,
-  onReschedule,
   onPreview,
 }: {
   task: Task
@@ -141,24 +138,19 @@ function TaskMarkButton({
   barDelay: number
   left: string
   width?: string
-  dayWidthPx: number
   isEntering: boolean
   isExiting: boolean
   labelEnd?: boolean
   onEdit: (task: Task) => void
-  onReschedule?: (task: Task) => void
   onPreview: (task: Task | null) => void
 }) {
   const suppressClickRef = useRef(false)
   const pointerIdRef = useRef<number | null>(null)
   const startXRef = useRef(0)
-  const dragDaysRef = useRef(0)
-  const draggingRef = useRef(false)
+  const startYRef = useRef(0)
   const previewOpenedRef = useRef(false)
   const longPressTimerRef = useRef<number | null>(null)
   const suppressTimerRef = useRef<number | null>(null)
-  const [dragOffsetPx, setDragOffsetPx] = useState(0)
-  const [isDragging, setIsDragging] = useState(false)
 
   const clearLongPress = () => {
     if (longPressTimerRef.current !== null) {
@@ -195,27 +187,6 @@ function TaskMarkButton({
     if (pointerIdRef.current !== event.pointerId) return
     pointerIdRef.current = null
 
-    if (draggingRef.current) {
-      const days = dragDaysRef.current
-      draggingRef.current = false
-      setIsDragging(false)
-      setDragOffsetPx(0)
-      dragDaysRef.current = 0
-      onPreview(null)
-      suppressNextClick()
-      if (days !== 0 && onReschedule) {
-        onReschedule(shiftTaskByDays(task, days))
-      } else {
-        // 拖了但未改期（「全部」视图很常见）：当作点击打开编辑
-        onEdit(task)
-      }
-      return
-    }
-
-    dragDaysRef.current = 0
-    setDragOffsetPx(0)
-    setIsDragging(false)
-
     // 长按已打开预览：吞掉这次松手带来的 click，不打开编辑弹窗
     if (previewOpenedRef.current) {
       previewOpenedRef.current = false
@@ -227,15 +198,12 @@ function TaskMarkButton({
     if (event.button !== 0 || isExiting) return
     pointerIdRef.current = event.pointerId
     startXRef.current = event.clientX
-    draggingRef.current = false
+    startYRef.current = event.clientY
     previewOpenedRef.current = false
-    dragDaysRef.current = 0
-    setDragOffsetPx(0)
     event.currentTarget.setPointerCapture(event.pointerId)
 
     clearLongPress()
     longPressTimerRef.current = window.setTimeout(() => {
-      if (draggingRef.current) return
       previewOpenedRef.current = true
       suppressNextClick()
       onPreview(task)
@@ -244,27 +212,10 @@ function TaskMarkButton({
 
   const onPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (pointerIdRef.current !== event.pointerId) return
-    // 「全部」等未启用改期的视图：只保留点击编辑 / 长按预览
-    if (!onReschedule) return
-
-    const deltaX = event.clientX - startXRef.current
-    // 每天很窄时提高阈值，避免轻点被误判成拖拽
-    const dragThresholdPx = Math.max(DRAG_THRESHOLD_PX * 2, dayWidthPx)
-    if (!draggingRef.current && Math.abs(deltaX) < dragThresholdPx) return
-
+    const dx = event.clientX - startXRef.current
+    const dy = event.clientY - startYRef.current
+    if (Math.hypot(dx, dy) < LONG_PRESS_MOVE_CANCEL_PX) return
     clearLongPress()
-    previewOpenedRef.current = false
-    onPreview(null)
-    if (!draggingRef.current) {
-      draggingRef.current = true
-      setIsDragging(true)
-      suppressNextClick()
-    }
-
-    const dayPx = Math.max(dayWidthPx, 1)
-    const days = Math.round(deltaX / dayPx)
-    dragDaysRef.current = days
-    setDragOffsetPx(days * dayPx)
   }
 
   return (
@@ -272,15 +223,12 @@ function TaskMarkButton({
       type="button"
       className={`task-mark category-${task.category} status-${status} ${task.type}${densityClass}${clipClass}${
         isEntering ? ' is-drop-in' : ''
-      }${isExiting ? ' is-exiting' : ''}${isDragging ? ' is-dragging' : ''}${
-        labelEnd ? ' is-label-end' : ''
-      }`}
+      }${isExiting ? ' is-exiting' : ''}${labelEnd ? ' is-label-end' : ''}`}
       style={
         {
           left,
           width,
           ['--bar-delay' as string]: `${barDelay}ms`,
-          transform: dragOffsetPx ? `translateX(${dragOffsetPx}px)` : undefined,
         } as CSSProperties
       }
       title={task.title}
@@ -356,7 +304,6 @@ export function GanttBoard({
   showSkeleton = false,
   onEdit,
   onCreateAt,
-  onReschedule,
 }: GanttBoardProps) {
   const now = new Date()
   const todayKey = format(now, 'yyyy-MM-dd')
@@ -387,7 +334,6 @@ export function GanttBoard({
   const lastFocusTodayTokenRef = useRef(0)
   const [todayFlash, setTodayFlash] = useState(false)
   const [previewTask, setPreviewTask] = useState<Task | null>(null)
-  const [canvasWidth, setCanvasWidth] = useState(0)
 
   const dateToPercent = (date: Date) =>
     (differenceInCalendarDays(startOfDay(date), startOfDay(range.start)) / totalDays) * 100
@@ -525,18 +471,6 @@ export function GanttBoard({
       }))
       .filter((group) => group.tasks.length > 0)
   }, [groupedTasks, range])
-
-  const dayWidthPx = canvasWidth > 0 ? canvasWidth / totalDays : pixelsPerDay
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const update = () => setCanvasWidth(canvas.getBoundingClientRect().width)
-    update()
-    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update)
-    observer?.observe(canvas)
-    return () => observer?.disconnect()
-  }, [boardWidth, viewScope, boardMotionKey])
 
   useEffect(() => {
     if (!focusTodayToken || !todayVisible) return
@@ -800,12 +734,10 @@ export function GanttBoard({
                                 ? undefined
                                 : `${position.width * 100}%`
                             }
-                            dayWidthPx={dayWidthPx}
                             isEntering={enteringTaskId === task.id}
                             isExiting={exitingTaskIds.includes(task.id)}
                             labelEnd={labelEnd}
                             onEdit={onEdit}
-                            onReschedule={viewScope === 'all' ? undefined : onReschedule}
                             onPreview={setPreviewTask}
                           />
                         </div>

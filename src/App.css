@@ -1684,8 +1684,7 @@
   );
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 28%);
   cursor: pointer;
-  /* 避免画布横滑抢走任务条手势；拖拽改期由 pointer 逻辑处理 */
-  touch-action: none;
+  touch-action: manipulation;
   container-type: inline-size;
   container-name: taskbar;
   animation: none;
@@ -1712,8 +1711,7 @@
   transform-origin: center center;
 }
 
-/* 拖拽 / 进出场需压过 is-motion 入场动画，否则 transform 被 fill-mode 锁死 */
-.gantt-body.is-motion .task-mark.is-dragging,
+/* 进出场需压过 is-motion 入场动画，否则 transform 被 fill-mode 锁死 */
 .gantt-body.is-motion .task-mark.is-drop-in,
 .gantt-body.is-motion .task-mark.is-exiting {
   animation: none;
@@ -3458,14 +3456,6 @@ button:focus-visible {
     transform: scaleX(.2) scaleY(.85);
     filter: blur(2px);
   }
-}
-
-.task-mark.is-dragging {
-  z-index: 8;
-  cursor: grabbing;
-  box-shadow: 0 14px 28px color-mix(in srgb, var(--ink) 22%, transparent);
-  transition: none;
-  touch-action: none;
 }
 
 .gantt-empty-art.is-draw .gantt-empty-bar {

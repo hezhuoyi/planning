@@ -437,10 +437,6 @@ function App() {
           showSkeleton={showSkeleton}
           onEdit={openEditTask}
           onCreateAt={openNewTask}
-          onReschedule={(task) => {
-            void saveTask(task)
-            showToast('已调整日期')
-          }}
         />
       </div>
 

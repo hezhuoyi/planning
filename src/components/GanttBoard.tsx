@@ -201,10 +201,13 @@ function TaskMarkButton({
       setIsDragging(false)
       setDragOffsetPx(0)
       dragDaysRef.current = 0
-      suppressNextClick()
       onPreview(null)
+      suppressNextClick()
       if (days !== 0 && onReschedule) {
         onReschedule(shiftTaskByDays(task, days))
+      } else {
+        // 拖了但未改期（「全部」视图很常见）：当作点击打开编辑
+        onEdit(task)
       }
       return
     }
@@ -241,8 +244,13 @@ function TaskMarkButton({
 
   const onPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (pointerIdRef.current !== event.pointerId) return
+    // 「全部」等未启用改期的视图：只保留点击编辑 / 长按预览
+    if (!onReschedule) return
+
     const deltaX = event.clientX - startXRef.current
-    if (!draggingRef.current && Math.abs(deltaX) < DRAG_THRESHOLD_PX) return
+    // 每天很窄时提高阈值，避免轻点被误判成拖拽
+    const dragThresholdPx = Math.max(DRAG_THRESHOLD_PX * 2, dayWidthPx)
+    if (!draggingRef.current && Math.abs(deltaX) < dragThresholdPx) return
 
     clearLongPress()
     previewOpenedRef.current = false
@@ -797,7 +805,7 @@ export function GanttBoard({
                             isExiting={exitingTaskIds.includes(task.id)}
                             labelEnd={labelEnd}
                             onEdit={onEdit}
-                            onReschedule={onReschedule}
+                            onReschedule={viewScope === 'all' ? undefined : onReschedule}
                             onPreview={setPreviewTask}
                           />
                         </div>

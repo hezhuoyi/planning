@@ -1684,6 +1684,8 @@
   );
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 28%);
   cursor: pointer;
+  /* 避免画布横滑抢走任务条手势；拖拽改期由 pointer 逻辑处理 */
+  touch-action: none;
   container-type: inline-size;
   container-name: taskbar;
   animation: none;

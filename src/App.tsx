@@ -440,64 +440,68 @@ function App() {
         />
       </div>
 
-      {taskDialogOpen && (
-        <TaskDialog
-          task={editingTask}
-          initialDate={dialogDate}
-          nextSortOrder={nextSortOrder}
-          onClose={() => setTaskDialogOpen(false)}
-          onSave={(task) => {
-            const isNew = !editingTask
-            void saveTask(task)
-            const justCompleted = Boolean(task.completedAt) && !editingTask?.completedAt
-            if (justCompleted) burstConfetti()
-            if (isNew) {
-              setEnteringTaskId(task.id)
-              if (enterTimerRef.current !== null) window.clearTimeout(enterTimerRef.current)
-              enterTimerRef.current = window.setTimeout(() => {
-                enterTimerRef.current = null
-                setEnteringTaskId((current) => (current === task.id ? null : current))
-              }, 700)
-            }
-            showToast(
-              justCompleted ? '完成啦' : editingTask ? '已更新安排' : '记好啦',
-            )
-          }}
-          onDelete={(id) => {
-            if (deleteTimersRef.current.has(id)) return
-            setExitingTaskIds((ids) => (ids.includes(id) ? ids : [...ids, id]))
-            const timer = window.setTimeout(() => {
-              deleteTimersRef.current.delete(id)
-              void deleteTask(id)
-              setExitingTaskIds((ids) => ids.filter((item) => item !== id))
-            }, 360)
-            deleteTimersRef.current.set(id, timer)
-            showToast('已删除')
-          }}
-        />
-      )}
+      {taskDialogOpen &&
+        createPortal(
+          <TaskDialog
+            task={editingTask}
+            initialDate={dialogDate}
+            nextSortOrder={nextSortOrder}
+            onClose={() => setTaskDialogOpen(false)}
+            onSave={(task) => {
+              const isNew = !editingTask
+              void saveTask(task)
+              const justCompleted = Boolean(task.completedAt) && !editingTask?.completedAt
+              if (justCompleted) burstConfetti()
+              if (isNew) {
+                setEnteringTaskId(task.id)
+                if (enterTimerRef.current !== null) window.clearTimeout(enterTimerRef.current)
+                enterTimerRef.current = window.setTimeout(() => {
+                  enterTimerRef.current = null
+                  setEnteringTaskId((current) => (current === task.id ? null : current))
+                }, 700)
+              }
+              showToast(
+                justCompleted ? '完成啦' : editingTask ? '已更新安排' : '记好啦',
+              )
+            }}
+            onDelete={(id) => {
+              if (deleteTimersRef.current.has(id)) return
+              setExitingTaskIds((ids) => (ids.includes(id) ? ids : [...ids, id]))
+              const timer = window.setTimeout(() => {
+                deleteTimersRef.current.delete(id)
+                void deleteTask(id)
+                setExitingTaskIds((ids) => ids.filter((item) => item !== id))
+              }, 360)
+              deleteTimersRef.current.set(id, timer)
+              showToast('已删除')
+            }}
+          />,
+          document.body,
+        )}
 
-      {syncDialogOpen && (
-        <SyncDialog
-          unlocked={unlocked}
-          syncConfigured={isConfigured}
-          syncError={syncError}
-          themeId={themeId}
-          onThemeChange={(id) => {
-            setTheme(id)
-            showToast('主题已切换')
-          }}
-          onClose={() => setSyncDialogOpen(false)}
-          onUnlock={(passcode) => {
-            unlockWithPasscode(passcode)
-            showToast('已解锁，开始同步')
-          }}
-          onLock={() => {
-            lockSync()
-            showToast('已锁定')
-          }}
-        />
-      )}
+      {syncDialogOpen &&
+        createPortal(
+          <SyncDialog
+            unlocked={unlocked}
+            syncConfigured={isConfigured}
+            syncError={syncError}
+            themeId={themeId}
+            onThemeChange={(id) => {
+              setTheme(id)
+              showToast('主题已切换')
+            }}
+            onClose={() => setSyncDialogOpen(false)}
+            onUnlock={(passcode) => {
+              unlockWithPasscode(passcode)
+              showToast('已解锁，开始同步')
+            }}
+            onLock={() => {
+              lockSync()
+              showToast('已锁定')
+            }}
+          />,
+          document.body,
+        )}
 
       {toast &&
         createPortal(

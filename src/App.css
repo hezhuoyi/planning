@@ -389,7 +389,9 @@
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    /* 故意不在 to 上保留 transform: translateY(0)：
+       fill-mode: both 会让 .app-shell 永久挂着 transform，
+       进而成为 position: fixed 后代的含块，导致视口跟随偏移。 */
   }
 }
 

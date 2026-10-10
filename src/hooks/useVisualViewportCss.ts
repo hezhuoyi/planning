@@ -16,12 +16,27 @@ export function useVisualViewportCss() {
     sync()
     vv?.addEventListener('resize', sync)
     vv?.addEventListener('scroll', sync)
+    // 输入框聚焦瞬间浏览器先尝试滚到位再触发 visualViewport 事件，
+    // 这里补一刀避免首帧读到过渡值
+    const onFocusIn = (event: FocusEvent) => {
+      const target = event.target
+      if (
+        target instanceof HTMLElement &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT')
+      ) {
+        sync()
+      }
+    }
+    window.addEventListener('focusin', onFocusIn)
     window.addEventListener('orientationchange', sync)
     window.addEventListener('resize', sync)
 
     return () => {
       vv?.removeEventListener('resize', sync)
       vv?.removeEventListener('scroll', sync)
+      window.removeEventListener('focusin', onFocusIn)
       window.removeEventListener('orientationchange', sync)
       window.removeEventListener('resize', sync)
       root.style.removeProperty('--vv-height')
